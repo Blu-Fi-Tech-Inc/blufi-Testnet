@@ -9,7 +9,7 @@ import (
 
 	"github.com/blu-fi-tech-inc/boriqua_project/core"
 	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
-	"github.com.blu-fi-tech-inc/boriqua_project/network"
+	"github.com/blu-fi-tech-inc/boriqua_project/network"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 	"github.com/blu-fi-tech-inc/boriqua_project/util"
 )
