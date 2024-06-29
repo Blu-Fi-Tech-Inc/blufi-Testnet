@@ -9,48 +9,27 @@ import (
 
 	"github.com/blu-fi-tech-inc/boriqua_project/core"
 	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
-	"github.com/blu-fi-tech-inc/boriqua_project/network"
+	"github.com.blu-fi-tech-inc/boriqua_project/network"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 	"github.com/blu-fi-tech-inc/boriqua_project/util"
 )
 
 func main() {
-	// Generate a private key for the validator
 	validatorPrivKey := crypto.GeneratePrivateKey()
 
-	// Create and start LOCAL_NODE
 	localNode := makeServer("LOCAL_NODE", &validatorPrivKey, ":3000", []string{":4000"}, ":9000")
-	go func() {
-		if err := localNode.Start(); err != nil {
-			log.Fatalf("Failed to start LOCAL_NODE: %v", err)
-		}
-	}()
+	go localNode.Start()
 
-	// Create and start REMOTE_NODE
 	remoteNode := makeServer("REMOTE_NODE", nil, ":4000", []string{":5000"}, "")
-	go func() {
-		if err := remoteNode.Start(); err != nil {
-			log.Fatalf("Failed to start REMOTE_NODE: %v", err)
-		}
-	}()
+	go remoteNode.Start()
 
-	// Create and start REMOTE_NODE_B
 	remoteNodeB := makeServer("REMOTE_NODE_B", nil, ":5000", nil, "")
-	go func() {
-		if err := remoteNodeB.Start(); err != nil {
-			log.Fatalf("Failed to start REMOTE_NODE_B: %v", err)
-		}
-	}()
+	go remoteNodeB.Start()
 
-	// Start LATE_NODE after a delay
 	go func() {
 		time.Sleep(11 * time.Second)
 		lateNode := makeServer("LATE_NODE", nil, ":6000", []string{":4000"}, "")
-		go func() {
-			if err := lateNode.Start(); err != nil {
-				log.Fatalf("Failed to start LATE_NODE: %v", err)
-			}
-		}()
+		go lateNode.Start()
 	}()
 
 	// Keep the main function running
