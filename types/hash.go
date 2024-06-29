@@ -5,30 +5,39 @@ import (
 	"fmt"
 )
 
-type Address [20]uint8
+type Hash [32]uint8
 
-func (a Address) ToSlice() []byte {
-	b := make([]byte, 20)
-	for i := 0; i < 20; i++ {
-		b[i] = a[i]
+func (h Hash) IsZero() bool {
+	for i := 0; i < 32; i++ {
+		if h[i] != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func (h Hash) ToSlice() []byte {
+	b := make([]byte, 32)
+	for i := 0; i < 32; i++ {
+		b[i] = h[i]
 	}
 	return b
 }
 
-func (a Address) String() string {
-	return hex.EncodeToString(a.ToSlice())
+func (h Hash) String() string {
+	return hex.EncodeToString(h.ToSlice())
 }
 
-func AddressFromBytes(b []byte) Address {
-	if len(b) != 20 {
-		msg := fmt.Sprintf("given bytes with length %d should be 20", len(b))
+func HashFromBytes(b []byte) Hash {
+	if len(b) != 32 {
+		msg := fmt.Sprintf("given bytes with length %d should be 32", len(b))
 		panic(msg)
 	}
 
-	var value [20]uint8
-	for i := 0; i < 20; i++ {
+	var value [32]uint8
+	for i := 0; i < 32; i++ {
 		value[i] = b[i]
 	}
 
-	return Address(value)
+	return Hash(value)
 }
