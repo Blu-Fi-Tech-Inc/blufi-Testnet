@@ -4,9 +4,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
 
@@ -26,18 +23,14 @@ func GenerateKeyPair() (*PrivateKey, *PublicKey, error) {
 	return &PrivateKey{privKey}, &PublicKey{&privKey.PublicKey}, nil
 }
 
-func (priv *PrivateKey) Sign(data []byte) ([]byte, error) {
-	r, s, err := ecdsa.Sign(rand.Reader, priv.PrivateKey, data)
-	if err != nil {
-		return nil, err
-	}
-	return append(r.Bytes(), s.Bytes()...), nil
-}
-
 func (pub *PublicKey) Address() (types.Address, error) {
 	pubBytes, err := x509.MarshalPKIXPublicKey(pub.PublicKey)
 	if err != nil {
 		return types.Address{}, err
 	}
-	return types.AddressFromBytes(pubBytes), nil
+	addr, err := types.AddressFromBytes(pubBytes)
+	if err != nil {
+		return types.Address{}, err
+	}
+	return addr, nil
 }
