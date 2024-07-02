@@ -4,78 +4,40 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
-	"io"
-	"math/big"
-
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
 
 type PrivateKey struct {
-	key *ecdsa.PrivateKey
+	*ecdsa.PrivateKey
 }
 
-func (k PrivateKey) Sign(data []byte) (*Signature, error) {
-	r, s, err := ecdsa.Sign(rand.Reader, k.key, data)
+type PublicKey struct {
+	*ecdsa.PublicKey
+}
+
+func GenerateKeyPair() (*PrivateKey, *PublicKey, error) {
+	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &PrivateKey{privKey}, &PublicKey{&privKey.PublicKey}, nil
+}
+
+func (priv *PrivateKey) Sign(data []byte) ([]byte, error) {
+	r, s, err := ecdsa.Sign(rand.Reader, priv.PrivateKey, data)
 	if err != nil {
 		return nil, err
 	}
-
-	return &Signature{
-		R: r,
-		S: s,
-	}, nil
+	return append(r.Bytes(), s.Bytes()...), nil
 }
 
-func NewPrivateKeyFromReader(r io.Reader) (PrivateKey, error) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), r)
+func (pub *PublicKey) Address() (types.Address, error) {
+	pubBytes, err := x509.MarshalPKIXPublicKey(pub.PublicKey)
 	if err != nil {
-		return PrivateKey{}, err
+		return types.Address{}, err
 	}
-
-	return PrivateKey{
-		key: key,
-	}, nil
-}
-
-func GeneratePrivateKey() (PrivateKey, error) {
-	return NewPrivateKeyFromReader(rand.Reader)
-}
-
-func (k PrivateKey) PublicKey() PublicKey {
-	return elliptic.MarshalCompressed(elliptic.P256(), k.key.PublicKey.X, k.key.PublicKey.Y)
-}
-
-type PublicKey []byte
-
-func (k PublicKey) String() string {
-	return hex.EncodeToString(k)
-}
-
-func (k PublicKey) Address() types.Address {
-	h := sha256.Sum256(k)
-
-	return types.AddressFromBytes(h[len(h)-20:])
-}
-
-type Signature struct {
-	S *big.Int
-	R *big.Int
-}
-
-func (sig Signature) String() string {
-	b := append(sig.S.Bytes(), sig.R.Bytes()...)
-	return hex.EncodeToString(b)
-}
-
-func (sig Signature) Verify(pubKey PublicKey, data []byte) bool {
-	x, y := elliptic.UnmarshalCompressed(elliptic.P256(), pubKey)
-	key := &ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     x,
-		Y:     y,
-	}
-
-	return ecdsa.Verify(key, data, sig.R, sig.S)
+	return types.AddressFromBytes(pubBytes), nil
 }
