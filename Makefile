@@ -1,4 +1,4 @@
-GOPATH := B:\Projects\Go
+GOPATH := B:/Projects/Go
 GOBIN := $(GOPATH)/bin
 export GOPATH
 export GOBIN
