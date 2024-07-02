@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/hex"
 	"fmt"
+	"log"
 )
 
 type Transaction struct {
@@ -23,7 +24,10 @@ func NewTransaction(from, to Address, amount uint64, data []byte) *Transaction {
 
 func (tx *Transaction) Hash() Hash {
 	// Example hashing logic (you may use a more complex hashing scheme)
-	hash := HashFromBytes([]byte(fmt.Sprintf("%v%v%v%v", tx.From, tx.To, tx.Amount, tx.Data)))
+	hash, err := HashFromBytes([]byte(fmt.Sprintf("%v%v%v%v", tx.From, tx.To, tx.Amount, tx.Data)))
+	if err != nil {
+		log.Fatalf("Failed to get hash from bytes: %v", err)
+	}
 	return hash
 }
 
