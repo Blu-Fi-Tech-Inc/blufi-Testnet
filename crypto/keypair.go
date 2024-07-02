@@ -4,6 +4,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509" // Importing x509 package
+	"encoding/pem"
+	"errors"
+
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
 
