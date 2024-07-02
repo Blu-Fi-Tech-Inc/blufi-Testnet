@@ -10,6 +10,4 @@ run: build
 	$(GOBIN)/boriqua_project
 
 test:
-	go test -v ./...
-
-.PHONY: build run test
+	go test ./...
