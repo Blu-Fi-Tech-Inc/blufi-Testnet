@@ -1,23 +1,21 @@
-package core
+package utils
 
 import (
 	"encoding/gob"
 	"io"
 )
 
-//
-// For now we GOB encoding is used for fast bootstrapping of the project
-// in a later phase I'm considering using Protobuffers as default encoding / decoding.
-//
-
-type Encoder[T any] interface {
-	Encode(T) error
+// Encoder is an interface for encoding a type to an io.Writer.
+type Encoder interface {
+	Encode(interface{}) error
 }
 
-type Decoder[T any] interface {
-	Decode(T) error
+// Decoder is an interface for decoding a type from an io.Reader.
+type Decoder interface {
+	Decode(interface{}) error
 }
 
+// GobTxEncoder encodes a Transaction to an io.Writer using GOB encoding.
 type GobTxEncoder struct {
 	w io.Writer
 }
@@ -28,10 +26,11 @@ func NewGobTxEncoder(w io.Writer) *GobTxEncoder {
 	}
 }
 
-func (e *GobTxEncoder) Encode(tx *Transaction) error {
-	return gob.NewEncoder(e.w).Encode(tx)
+func (enc *GobTxEncoder) Encode(tx *Transaction) error {
+	return gob.NewEncoder(enc.w).Encode(tx)
 }
 
+// GobTxDecoder decodes a Transaction from an io.Reader using GOB decoding.
 type GobTxDecoder struct {
 	r io.Reader
 }
@@ -42,10 +41,11 @@ func NewGobTxDecoder(r io.Reader) *GobTxDecoder {
 	}
 }
 
-func (e *GobTxDecoder) Decode(tx *Transaction) error {
-	return gob.NewDecoder(e.r).Decode(tx)
+func (dec *GobTxDecoder) Decode(tx *Transaction) error {
+	return gob.NewDecoder(dec.r).Decode(tx)
 }
 
+// GobBlockEncoder encodes a Block to an io.Writer using GOB encoding.
 type GobBlockEncoder struct {
 	w io.Writer
 }
@@ -60,6 +60,7 @@ func (enc *GobBlockEncoder) Encode(b *Block) error {
 	return gob.NewEncoder(enc.w).Encode(b)
 }
 
+// GobBlockDecoder decodes a Block from an io.Reader using GOB decoding.
 type GobBlockDecoder struct {
 	r io.Reader
 }

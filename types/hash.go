@@ -5,8 +5,10 @@ import (
 	"fmt"
 )
 
-type Hash [32]uint8
+// Hash represents a 32-byte hash.
+type Hash [32]byte
 
+// IsZero checks if the Hash is all zeros.
 func (h Hash) IsZero() bool {
 	for i := 0; i < 32; i++ {
 		if h[i] != 0 {
@@ -16,28 +18,24 @@ func (h Hash) IsZero() bool {
 	return true
 }
 
+// ToSlice converts the Hash to a byte slice.
 func (h Hash) ToSlice() []byte {
-	b := make([]byte, 32)
-	for i := 0; i < 32; i++ {
-		b[i] = h[i]
-	}
-	return b
+	return h[:]
 }
 
+// String returns the hexadecimal representation of the Hash.
 func (h Hash) String() string {
-	return hex.EncodeToString(h.ToSlice())
+	return hex.EncodeToString(h[:])
 }
 
-func HashFromBytes(b []byte) Hash {
+// HashFromBytes creates a Hash from a byte slice.
+// It returns an error if the byte slice length is not 32.
+func HashFromBytes(b []byte) (Hash, error) {
 	if len(b) != 32 {
-		msg := fmt.Sprintf("given bytes with length %d should be 32", len(b))
-		panic(msg)
+		return Hash{}, fmt.Errorf("invalid byte length: expected 32, got %d", len(b))
 	}
 
-	var value [32]uint8
-	for i := 0; i < 32; i++ {
-		value[i] = b[i]
-	}
-
-	return Hash(value)
+	var hash Hash
+	copy(hash[:], b)
+	return hash, nil
 }

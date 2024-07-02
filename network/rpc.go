@@ -2,7 +2,6 @@ package network
 
 import (
 	"bytes"
-	"crypto/elliptic"
 	"encoding/gob"
 	"fmt"
 	"io"
@@ -23,16 +22,19 @@ const (
 	MessageTypeBlocks    MessageType = 0x6
 )
 
+// RPC represents a Remote Procedure Call.
 type RPC struct {
-	From    net.Addr //string
-	Payload io.Reader
+	From    net.Addr // Address of the sender.
+	Payload io.Reader // Payload of the RPC.
 }
 
+// Message represents a network message.
 type Message struct {
-	Header MessageType
-	Data   []byte
+	Header MessageType // Type of message.
+	Data   []byte      // Data payload.
 }
 
+// NewMessage creates a new Message instance.
 func NewMessage(t MessageType, data []byte) *Message {
 	return &Message{
 		Header: t,
@@ -40,26 +42,28 @@ func NewMessage(t MessageType, data []byte) *Message {
 	}
 }
 
+// Bytes serializes the Message into bytes.
 func (msg *Message) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	gob.NewEncoder(buf).Encode(msg)
 	return buf.Bytes()
 }
 
+// DecodedMessage represents a decoded RPC message.
 type DecodedMessage struct {
-	From net.Addr
-	Data any
+	From net.Addr // Address of the sender.
+	Data interface{} // Decoded data payload.
 }
 
+// RPCDecodeFunc defines a function type for decoding RPC messages.
 type RPCDecodeFunc func(RPC) (*DecodedMessage, error)
 
+// DefaultRPCDecodeFunc decodes an RPC message based on its type.
 func DefaultRPCDecodeFunc(rpc RPC) (*DecodedMessage, error) {
 	msg := Message{}
 	if err := gob.NewDecoder(rpc.Payload).Decode(&msg); err != nil {
 		return nil, fmt.Errorf("failed to decode message from %s: %s", rpc.From, err)
 	}
-
-	// fmt.Printf("receiving message: %+v\n", msg)
 
 	logrus.WithFields(logrus.Fields{
 		"from": rpc.From,
@@ -70,7 +74,7 @@ func DefaultRPCDecodeFunc(rpc RPC) (*DecodedMessage, error) {
 	case MessageTypeTx:
 		tx := new(core.Transaction)
 		if err := tx.Decode(core.NewGobTxDecoder(bytes.NewReader(msg.Data))); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode transaction message from %s: %s", rpc.From, err)
 		}
 
 		return &DecodedMessage{
@@ -81,7 +85,7 @@ func DefaultRPCDecodeFunc(rpc RPC) (*DecodedMessage, error) {
 	case MessageTypeBlock:
 		block := new(core.Block)
 		if err := block.Decode(core.NewGobBlockDecoder(bytes.NewReader(msg.Data))); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode block message from %s: %s", rpc.From, err)
 		}
 
 		return &DecodedMessage{
@@ -98,7 +102,7 @@ func DefaultRPCDecodeFunc(rpc RPC) (*DecodedMessage, error) {
 	case MessageTypeStatus:
 		statusMessage := new(StatusMessage)
 		if err := gob.NewDecoder(bytes.NewReader(msg.Data)).Decode(statusMessage); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode status message from %s: %s", rpc.From, err)
 		}
 
 		return &DecodedMessage{
@@ -109,7 +113,7 @@ func DefaultRPCDecodeFunc(rpc RPC) (*DecodedMessage, error) {
 	case MessageTypeGetBlocks:
 		getBlocks := new(GetBlocksMessage)
 		if err := gob.NewDecoder(bytes.NewReader(msg.Data)).Decode(getBlocks); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode get blocks message from %s: %s", rpc.From, err)
 		}
 
 		return &DecodedMessage{
@@ -120,7 +124,7 @@ func DefaultRPCDecodeFunc(rpc RPC) (*DecodedMessage, error) {
 	case MessageTypeBlocks:
 		blocks := new(BlocksMessage)
 		if err := gob.NewDecoder(bytes.NewReader(msg.Data)).Decode(blocks); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode blocks message from %s: %s", rpc.From, err)
 		}
 
 		return &DecodedMessage{
@@ -129,14 +133,20 @@ func DefaultRPCDecodeFunc(rpc RPC) (*DecodedMessage, error) {
 		}, nil
 
 	default:
-		return nil, fmt.Errorf("invalid message header %x", msg.Header)
+		return nil, fmt.Errorf("invalid message header %x from %s", msg.Header, rpc.From)
 	}
 }
 
+// RPCProcessor defines an interface for processing decoded RPC messages.
 type RPCProcessor interface {
 	ProcessMessage(*DecodedMessage) error
 }
 
 func init() {
-	gob.Register(elliptic.P256())
+	gob.Register(core.Transaction{})
+	gob.Register(core.Block{})
+	gob.Register(&GetStatusMessage{})
+	gob.Register(&StatusMessage{})
+	gob.Register(&GetBlocksMessage{})
+	gob.Register(&BlocksMessage{})
 }

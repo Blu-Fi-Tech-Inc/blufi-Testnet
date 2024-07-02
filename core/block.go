@@ -22,8 +22,9 @@ type Header struct {
 func (h *Header) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	enc := gob.NewEncoder(buf)
-	enc.Encode(h)
-
+	if err := enc.Encode(h); err != nil {
+		panic(err) // Handle the error appropriately in production code
+	}
 	return buf.Bytes()
 }
 
@@ -64,7 +65,11 @@ func NewBlockFromPrevHeader(prevHeader *Header, txx []*Transaction) (*Block, err
 
 func (b *Block) AddTransaction(tx *Transaction) {
 	b.Transactions = append(b.Transactions, tx)
-	hash, _ := CalculateDataHash(b.Transactions)
+	hash, err := CalculateDataHash(b.Transactions)
+	if err != nil {
+		// Handle the error appropriately in production code
+		return
+	}
 	b.DataHash = hash
 }
 
@@ -86,7 +91,7 @@ func (b *Block) Verify() error {
 	}
 
 	if !b.Signature.Verify(b.Validator, b.Header.Bytes()) {
-		return fmt.Errorf("block has invalid signature")
+		return fmt.Errorf("block has an invalid signature")
 	}
 
 	for _, tx := range b.Transactions {
@@ -123,16 +128,14 @@ func (b *Block) Hash(hasher Hasher[*Header]) types.Hash {
 	return b.hash
 }
 
-func CalculateDataHash(txx []*Transaction) (hash types.Hash, err error) {
+func CalculateDataHash(txx []*Transaction) (types.Hash, error) {
 	buf := &bytes.Buffer{}
 
 	for _, tx := range txx {
-		if err = tx.Encode(NewGobTxEncoder(buf)); err != nil {
-			return
+		if err := tx.Encode(NewGobTxEncoder(buf)); err != nil {
+			return types.Hash{}, err
 		}
 	}
 
-	hash = sha256.Sum256(buf.Bytes())
-
-	return
+	return sha256.Sum256(buf.Bytes()), nil
 }

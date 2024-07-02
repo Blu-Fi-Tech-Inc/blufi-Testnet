@@ -29,6 +29,7 @@ type Blockchain struct {
 	contractState *State
 }
 
+// NewBlockchain initializes a new blockchain with a genesis block
 func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
 	// We should create all states inside the scope of the newblockchain.
 
@@ -55,10 +56,12 @@ func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
 	return bc, err
 }
 
+// SetValidator sets the block validator
 func (bc *Blockchain) SetValidator(v Validator) {
 	bc.validator = v
 }
 
+// AddBlock adds a block to the blockchain after validation
 func (bc *Blockchain) AddBlock(b *Block) error {
 	if err := bc.validator.ValidateBlock(b); err != nil {
 		return err
@@ -67,6 +70,7 @@ func (bc *Blockchain) AddBlock(b *Block) error {
 	return bc.addBlockWithoutValidation(b)
 }
 
+// handleNativeTransfer processes native token transfers
 func (bc *Blockchain) handleNativeTransfer(tx *Transaction) error {
 	bc.logger.Log(
 		"msg", "handle native token transfer",
@@ -77,6 +81,7 @@ func (bc *Blockchain) handleNativeTransfer(tx *Transaction) error {
 	return bc.accountState.Transfer(tx.From.Address(), tx.To.Address(), tx.Value)
 }
 
+// handleNativeNFT processes native NFT transactions
 func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 	hash := tx.Hash(TxHasher{})
 
@@ -99,9 +104,10 @@ func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 	return nil
 }
 
+// GetBlockByHash retrieves a block by its hash
 func (bc *Blockchain) GetBlockByHash(hash types.Hash) (*Block, error) {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
+	bc.lock.RLock() // Use RLock for read-only access
+	defer bc.lock.RUnlock()
 
 	block, ok := bc.blockStore[hash]
 	if !ok {
@@ -111,31 +117,34 @@ func (bc *Blockchain) GetBlockByHash(hash types.Hash) (*Block, error) {
 	return block, nil
 }
 
+// GetBlock retrieves a block by its height
 func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
 	if height > bc.Height() {
 		return nil, fmt.Errorf("given height (%d) too high", height)
 	}
 
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
+	bc.lock.RLock() // Use RLock for read-only access
+	defer bc.lock.RUnlock()
 
 	return bc.blocks[height], nil
 }
 
+// GetHeader retrieves a block header by its height
 func (bc *Blockchain) GetHeader(height uint32) (*Header, error) {
 	if height > bc.Height() {
 		return nil, fmt.Errorf("given height (%d) too high", height)
 	}
 
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
+	bc.lock.RLock() // Use RLock for read-only access
+	defer bc.lock.RUnlock()
 
 	return bc.headers[height], nil
 }
 
+// GetTxByHash retrieves a transaction by its hash
 func (bc *Blockchain) GetTxByHash(hash types.Hash) (*Transaction, error) {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
+	bc.lock.RLock() // Use RLock for read-only access
+	defer bc.lock.RUnlock()
 
 	tx, ok := bc.txStore[hash]
 	if !ok {
@@ -145,12 +154,12 @@ func (bc *Blockchain) GetTxByHash(hash types.Hash) (*Transaction, error) {
 	return tx, nil
 }
 
+// HasBlock checks if a block exists at a given height
 func (bc *Blockchain) HasBlock(height uint32) bool {
 	return height <= bc.Height()
 }
 
-// [0, 1, 2 ,3] => 4 len
-// [0, 1, 2 ,3] => 3 height
+// Height returns the current height of the blockchain
 func (bc *Blockchain) Height() uint32 {
 	bc.lock.RLock()
 	defer bc.lock.RUnlock()
@@ -158,10 +167,11 @@ func (bc *Blockchain) Height() uint32 {
 	return uint32(len(bc.headers) - 1)
 }
 
+// handleTransaction processes a transaction
 func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 	// If we have data inside execute that data on the VM.
 	if len(tx.Data) > 0 {
-		bc.logger.Log("msg", "executing code", "len", len(tx.Data), "hash", tx.Hash(&TxHasher{}))
+		bc.logger.Log("msg", "executing code", "len", len(tx.Data), "hash", tx.Hash(TxHasher{}))
 
 		vm := NewVM(tx.Data, bc.contractState)
 		if err := vm.Run(); err != nil {
@@ -170,7 +180,7 @@ func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 	}
 
 	// If the txInner of the transaction is not nil we need to handle
-	// the native NFT implemtation.
+	// the native NFT implementation.
 	if tx.TxInner != nil {
 		if err := bc.handleNativeNFT(tx); err != nil {
 			return err
@@ -187,6 +197,7 @@ func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 	return nil
 }
 
+// addBlockWithoutValidation adds a block to the blockchain without validation
 func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 	bc.stateLock.Lock()
 	for i := 0; i < len(b.Transactions); i++ {

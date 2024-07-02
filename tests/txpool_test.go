@@ -4,19 +4,19 @@ import (
 	"testing"
 
 	"github.com/blu-fi-tech-inc/boriqua_project/core"
-	"github.com/blu-fi-tech-inc/boriqua_project/util"
+	"github.com/blu-fi-tech-inc/boriqua_project/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTxMaxLength(t *testing.T) {
 	p := NewTxPool(1)
-	p.Add(util.NewRandomTransaction(10))
+	p.Add(utils.NewRandomTransaction(10))
 	assert.Equal(t, 1, p.all.Count())
 
-	p.Add(util.NewRandomTransaction(10))
-	p.Add(util.NewRandomTransaction(10))
-	p.Add(util.NewRandomTransaction(10))
-	tx := util.NewRandomTransaction(100)
+	p.Add(utils.NewRandomTransaction(10))
+	p.Add(utils.NewRandomTransaction(10))
+	p.Add(utils.NewRandomTransaction(10))
+	tx := utils.NewRandomTransaction(100)
 	p.Add(tx)
 	assert.Equal(t, 1, p.all.Count())
 	assert.True(t, p.Contains(tx.Hash(core.TxHasher{})))
@@ -27,7 +27,7 @@ func TestTxPoolAdd(t *testing.T) {
 	n := 10
 
 	for i := 1; i <= n; i++ {
-		tx := util.NewRandomTransaction(100)
+		tx := utils.NewRandomTransaction(100)
 		p.Add(tx)
 		// cannot add twice
 		p.Add(tx)
@@ -45,7 +45,7 @@ func TestTxPoolMaxLength(t *testing.T) {
 	txx := []*core.Transaction{}
 
 	for i := 0; i < n; i++ {
-		tx := util.NewRandomTransaction(100)
+		tx := utils.NewRandomTransaction(100)
 		p.Add(tx)
 
 		if i > n-(maxLen+1) {
@@ -63,12 +63,12 @@ func TestTxPoolMaxLength(t *testing.T) {
 
 func TestTxSortedMapFirst(t *testing.T) {
 	m := NewTxSortedMap()
-	first := util.NewRandomTransaction(100)
+	first := utils.NewRandomTransaction(100)
 	m.Add(first)
-	m.Add(util.NewRandomTransaction(10))
-	m.Add(util.NewRandomTransaction(10))
-	m.Add(util.NewRandomTransaction(10))
-	m.Add(util.NewRandomTransaction(10))
+	m.Add(utils.NewRandomTransaction(10))
+	m.Add(utils.NewRandomTransaction(10))
+	m.Add(utils.NewRandomTransaction(10))
+	m.Add(utils.NewRandomTransaction(10))
 	assert.Equal(t, first, m.First())
 }
 
@@ -77,7 +77,7 @@ func TestTxSortedMapAdd(t *testing.T) {
 	n := 100
 
 	for i := 0; i < n; i++ {
-		tx := util.NewRandomTransaction(100)
+		tx := utils.NewRandomTransaction(100)
 		m.Add(tx)
 		// cannot add the same twice
 		m.Add(tx)
@@ -97,7 +97,7 @@ func TestTxSortedMapAdd(t *testing.T) {
 func TestTxSortedMapRemove(t *testing.T) {
 	m := NewTxSortedMap()
 
-	tx := util.NewRandomTransaction(100)
+	tx := utils.NewRandomTransaction(100)
 	m.Add(tx)
 	assert.Equal(t, m.Count(), 1)
 

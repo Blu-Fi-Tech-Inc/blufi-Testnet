@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+
+	"github.com/sirupsen/logrus"
 )
 
 type TCPPeer struct {
@@ -14,6 +16,9 @@ type TCPPeer struct {
 
 func (p *TCPPeer) Send(b []byte) error {
 	_, err := p.conn.Write(b)
+	if err != nil {
+		logrus.WithError(err).Error("error sending data to peer")
+	}
 	return err
 }
 
@@ -22,14 +27,15 @@ func (p *TCPPeer) readLoop(rpcCh chan RPC) {
 	for {
 		n, err := p.conn.Read(buf)
 		if err == io.EOF {
-			continue
+			continue // EOF is expected when connection closes
 		}
 		if err != nil {
-			fmt.Printf("read error: %s", err)
+			logrus.WithError(err).Error("read error from peer")
 			continue
 		}
 
-		msg := buf[:n]
+		msg := make([]byte, n)
+		copy(msg, buf[:n]) // Create a copy of the buffer to avoid concurrent access issues
 		rpcCh <- RPC{
 			From:    p.conn.RemoteAddr(),
 			Payload: bytes.NewReader(msg),
@@ -53,12 +59,15 @@ func NewTCPTransport(addr string, peerCh chan *TCPPeer) *TCPTransport {
 func (t *TCPTransport) Start() error {
 	ln, err := net.Listen("tcp", t.listenAddr)
 	if err != nil {
+		logrus.WithError(err).Error("error starting TCP listener")
 		return err
 	}
 
 	t.listener = ln
 
 	go t.acceptLoop()
+
+	logrus.Info("TCP transport started successfully")
 
 	return nil
 }
@@ -67,7 +76,7 @@ func (t *TCPTransport) acceptLoop() {
 	for {
 		conn, err := t.listener.Accept()
 		if err != nil {
-			fmt.Printf("accept error from %+v\n", conn)
+			logrus.WithError(err).Error("error accepting connection")
 			continue
 		}
 
@@ -76,5 +85,7 @@ func (t *TCPTransport) acceptLoop() {
 		}
 
 		t.peerCh <- peer
+
+		logrus.WithField("peer", conn.RemoteAddr()).Info("new peer connected")
 	}
 }

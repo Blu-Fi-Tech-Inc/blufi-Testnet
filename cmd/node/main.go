@@ -11,7 +11,7 @@ import (
 	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
 	"github.com/blu-fi-tech-inc/boriqua_project/network"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
-	"github.com/blu-fi-tech-inc/boriqua_project/util"
+	"github.com/blu-fi-tech-inc/boriqua_project/utils"
 )
 
 func main() {
@@ -58,8 +58,17 @@ func sendTransaction(privKey crypto.PrivateKey) error {
 	}
 
 	client := http.Client{}
-	_, err = client.Do(req)
-	return err
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return nil
 }
 
 // makeServer creates and initializes a server with the given options
@@ -102,9 +111,14 @@ func createCollectionTx(privKey crypto.PrivateKey) types.Hash {
 	}
 
 	client := http.Client{}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatalf("Failed to send HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("Unexpected status code: %d", resp.StatusCode)
 	}
 
 	return tx.Hash(core.TxHasher{})
@@ -112,7 +126,7 @@ func createCollectionTx(privKey crypto.PrivateKey) types.Hash {
 
 // nftMinter mints an NFT and sends the transaction to the network
 func nftMinter(privKey crypto.PrivateKey, collection types.Hash) {
-	metaData := map[string]any{
+	metaData := map[string]interface{}{
 		"power":  8,
 		"health": 100,
 		"color":  "green",
@@ -127,7 +141,7 @@ func nftMinter(privKey crypto.PrivateKey, collection types.Hash) {
 	tx := core.NewTransaction(nil)
 	tx.TxInner = core.MintTx{
 		Fee:             200,
-		NFT:             util.RandomHash(),
+		NFT:             utils.RandomHash(),
 		MetaData:        metaBuf.Bytes(),
 		Collection:      collection,
 		CollectionOwner: privKey.PublicKey(),
@@ -147,8 +161,13 @@ func nftMinter(privKey crypto.PrivateKey, collection types.Hash) {
 	}
 
 	client := http.Client{}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatalf("Failed to send HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("Unexpected status code: %d", resp.StatusCode)
 	}
 }

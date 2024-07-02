@@ -28,23 +28,23 @@ func (k PrivateKey) Sign(data []byte) (*Signature, error) {
 	}, nil
 }
 
-func NewPrivateKeyFromReader(r io.Reader) PrivateKey {
+func NewPrivateKeyFromReader(r io.Reader) (PrivateKey, error) {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), r)
 	if err != nil {
-		panic(err)
+		return PrivateKey{}, err
 	}
 
 	return PrivateKey{
 		key: key,
-	}
+	}, nil
 }
 
-func GeneratePrivateKey() PrivateKey {
+func GeneratePrivateKey() (PrivateKey, error) {
 	return NewPrivateKeyFromReader(rand.Reader)
 }
 
 func (k PrivateKey) PublicKey() PublicKey {
-	return elliptic.MarshalCompressed(k.key.PublicKey, k.key.PublicKey.X, k.key.PublicKey.Y)
+	return elliptic.MarshalCompressed(elliptic.P256(), k.key.PublicKey.X, k.key.PublicKey.Y)
 }
 
 type PublicKey []byte

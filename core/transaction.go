@@ -27,7 +27,7 @@ type MintTx struct {
 	Collection      types.Hash
 	MetaData        []byte
 	CollectionOwner crypto.PublicKey
-	Signature       crypto.Signature
+	Signature       *crypto.Signature
 }
 
 type Transaction struct {
@@ -41,7 +41,7 @@ type Transaction struct {
 	Signature *crypto.Signature
 	Nonce     int64
 
-	// cached version of the tx data hash
+	// Cached version of the tx data hash
 	hash types.Hash
 }
 
@@ -80,6 +80,16 @@ func (tx *Transaction) Verify() error {
 	hash := tx.Hash(TxHasher{})
 	if !tx.Signature.Verify(tx.From, hash.ToSlice()) {
 		return fmt.Errorf("invalid transaction signature")
+	}
+
+	// Verify the inner transaction if exists
+	switch innerTx := tx.TxInner.(type) {
+	case CollectionTx:
+		// Add specific verification for CollectionTx if needed
+	case MintTx:
+		if !innerTx.Signature.Verify(innerTx.CollectionOwner, innerTx.Collection.ToSlice()) {
+			return fmt.Errorf("invalid mint transaction signature")
+		}
 	}
 
 	return nil

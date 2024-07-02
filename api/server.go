@@ -13,25 +13,24 @@ import (
 )
 
 type TxResponse struct {
-	TxCount uint
-	Hashes  []string
+	TxCount uint     `json:"tx_count"`
+	Hashes  []string `json:"hashes"`
 }
 
 type APIError struct {
-	Error string
+	Error string `json:"error"`
 }
 
 type Block struct {
-	Hash          string
-	Version       uint32
-	DataHash      string
-	PrevBlockHash string
-	Height        uint32
-	Timestamp     int64
-	Validator     string
-	Signature     string
-
-	TxResponse TxResponse
+	Hash          string     `json:"hash"`
+	Version       uint32     `json:"version"`
+	DataHash      string     `json:"data_hash"`
+	PrevBlockHash string     `json:"prev_block_hash"`
+	Height        uint32     `json:"height"`
+	Timestamp     int64      `json:"timestamp"`
+	Validator     string     `json:"validator"`
+	Signature     string     `json:"signature"`
+	TxResponse    TxResponse `json:"tx_response"`
 }
 
 type ServerConfig struct {
@@ -70,7 +69,7 @@ func (s *Server) handlePostTx(c echo.Context) error {
 	}
 	s.txChan <- tx
 
-	return nil
+	return c.JSON(http.StatusOK, map[string]string{"status": "transaction received"})
 }
 
 func (s *Server) handleGetTx(c echo.Context) error {
@@ -83,7 +82,7 @@ func (s *Server) handleGetTx(c echo.Context) error {
 
 	tx, err := s.bc.GetTxByHash(types.HashFromBytes(b))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, APIError{Error: err.Error()})
+		return c.JSON(http.StatusNotFound, APIError{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, tx)
@@ -97,13 +96,13 @@ func (s *Server) handleGetBlock(c echo.Context) error {
 	if err == nil {
 		block, err := s.bc.GetBlock(uint32(height))
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, APIError{Error: err.Error()})
+			return c.JSON(http.StatusNotFound, APIError{Error: err.Error()})
 		}
 
 		return c.JSON(http.StatusOK, intoJSONBlock(block))
 	}
 
-	// otherwise assume its the hash
+	// Otherwise assume its the hash
 	b, err := hex.DecodeString(hashOrID)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, APIError{Error: err.Error()})
@@ -111,7 +110,7 @@ func (s *Server) handleGetBlock(c echo.Context) error {
 
 	block, err := s.bc.GetBlockByHash(types.HashFromBytes(b))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, APIError{Error: err.Error()})
+		return c.JSON(http.StatusNotFound, APIError{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, intoJSONBlock(block))

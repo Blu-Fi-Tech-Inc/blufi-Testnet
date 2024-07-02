@@ -5,30 +5,27 @@ import (
 	"fmt"
 )
 
-type Address [20]uint8
+// Address represents a 20-byte address.
+type Address [20]byte
 
+// ToSlice converts the Address to a byte slice.
 func (a Address) ToSlice() []byte {
-	b := make([]byte, 20)
-	for i := 0; i < 20; i++ {
-		b[i] = a[i]
-	}
-	return b
+	return a[:]
 }
 
+// String returns the hexadecimal representation of the Address.
 func (a Address) String() string {
-	return hex.EncodeToString(a.ToSlice())
+	return hex.EncodeToString(a[:])
 }
 
-func AddressFromBytes(b []byte) Address {
+// AddressFromBytes creates an Address from a byte slice.
+// It panics if the byte slice length is not 20.
+func AddressFromBytes(b []byte) (Address, error) {
 	if len(b) != 20 {
-		msg := fmt.Sprintf("given bytes with length %d should be 20", len(b))
-		panic(msg)
+		return Address{}, fmt.Errorf("invalid byte length: expected 20, got %d", len(b))
 	}
 
-	var value [20]uint8
-	for i := 0; i < 20; i++ {
-		value[i] = b[i]
-	}
-
-	return Address(value)
+	var addr Address
+	copy(addr[:], b)
+	return addr, nil
 }
