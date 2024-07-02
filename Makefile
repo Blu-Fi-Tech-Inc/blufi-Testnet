@@ -8,6 +8,3 @@ build:
 
 run: build
 	$(GOBIN)/boriqua_project
-
-test:
-	go test ./...
