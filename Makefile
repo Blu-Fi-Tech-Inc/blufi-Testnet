@@ -4,10 +4,10 @@ export GOPATH
 export GOBIN
 
 build:
-	cd $(GOPATH) && go build -o $(GOBIN)/boriqua_project
+	cd "$(GOPATH)" && go build -o "$(GOBIN)/boriqua_project"
 
 run: build
-	$(GOBIN)/boriqua_project
+	"$(GOBIN)/boriqua_project"
 
 test:
 	go test ./...
