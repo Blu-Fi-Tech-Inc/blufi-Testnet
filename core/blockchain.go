@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/blu-fi-tech-inc/blufi-network/crypto"
 	"github.com/blu-fi-tech-inc/blufi-network/types"
 	"github.com/go-kit/log"
 )
@@ -234,10 +233,5 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 		"transactions", len(b.Transactions),
 	)
 
-	blockBytes, err := b.EncodeToBytes()
-	if err != nil {
-		return err
-	}
-
-	return bc.store.Put(b.Hash(BlockHasher{}).String(), blockBytes)
+	return bc.store.Put(b)
 }
