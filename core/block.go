@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+	"github.com/blu-fi-tech-inc/blufi-network/crypto"
+	"github.com/blu-fi-tech-inc/blufi-network/types"
 )
 
 // Header represents the header of a block.

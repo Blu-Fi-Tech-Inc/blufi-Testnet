@@ -7,7 +7,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/core"
+	"github.com/blu-fi-tech-inc/blufi-network/core"
 	"github.com/sirupsen/logrus"
 )
 

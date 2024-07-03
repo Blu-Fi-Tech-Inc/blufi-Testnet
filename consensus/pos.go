@@ -6,7 +6,7 @@ import (
     "sync"
     "time"
 
-    "github.com/blu-fi-tech-inc/boriqua_project/types"
+    "github.com/blu-fi-tech-inc/blufi-network/types"
 )
 
 type PoS struct {

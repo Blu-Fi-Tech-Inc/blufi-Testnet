@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/core"
-	"github.com/blu-fi-tech-inc/boriqua_project/utils"
+	"github.com/blu-fi-tech-inc/blufi-network/core"
+	"github.com/blu-fi-tech-inc/blufi-network/utils"
 	"github.com/stretchr/testify/assert"
 )
 

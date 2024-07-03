@@ -1,6 +1,6 @@
 package network
 
-import "github.com/blu-fi-tech-inc/boriqua_project/core"
+import "github.com/blu-fi-tech-inc/blufi-network/core"
 
 // GetBlocksMessage represents a request to get blocks from a specific index to a maximum index (if To is 0).
 type GetBlocksMessage struct {

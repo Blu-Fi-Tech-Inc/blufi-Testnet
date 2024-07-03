@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/api"
-	"github.com/blu-fi-tech-inc/boriqua_project/consensus"
-	"github.com/blu-fi-tech-inc/boriqua_project/core"
-	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+	"github.com/blu-fi-tech-inc/blufi-network/api"
+	"github.com/blu-fi-tech-inc/blufi-network/consensus"
+	"github.com/blu-fi-tech-inc/blufi-network/core"
+	"github.com/blu-fi-tech-inc/blufi-network/crypto"
+	"github.com/blu-fi-tech-inc/blufi-network/types"
 	"github.com/go-kit/log"
 )
 

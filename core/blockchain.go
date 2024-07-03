@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/storage"
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+	"github.com/blu-fi-tech-inc/blufi-network/storage"
+	"github.com/blu-fi-tech-inc/blufi-network/types"
 	"github.com/go-kit/log"
 )
 

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/core"
-	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+	"github.com/blu-fi-tech-inc/blufi-network/core"
+	"github.com/blu-fi-tech-inc/blufi-network/crypto"
+	"github.com/blu-fi-tech-inc/blufi-network/types"
 	"github.com/stretchr/testify/assert"
 )
 

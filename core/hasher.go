@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"log"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+	"github.com/blu-fi-tech-inc/blufi-network/types"
 )
 
 // Hasher is an interface that defines a method to hash various types of data.

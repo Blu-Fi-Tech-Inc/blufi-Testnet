@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/consensus"
-	"github.com/blu-fi-tech-inc/boriqua_project/core"
+	"github.com/blu-fi-tech-inc/blufi-network/consensus"
+	"github.com/blu-fi-tech-inc/blufi-network/core"
 	"github.com/gorilla/mux"
 )
 

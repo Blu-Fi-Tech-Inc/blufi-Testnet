@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+	"github.com/blu-fi-tech-inc/blufi-network/types"
 )
 
 var (

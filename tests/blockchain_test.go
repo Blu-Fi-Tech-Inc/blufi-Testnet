@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+	"github.com/blu-fi-tech-inc/blufi-network/crypto"
+	"github.com/blu-fi-tech-inc/blufi-network/types"
 	"github.com/go-kit/log"
 	"github.com/stretchr/testify/assert"
 )

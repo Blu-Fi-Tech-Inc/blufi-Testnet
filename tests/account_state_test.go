@@ -3,7 +3,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
+	"github.com/blu-fi-tech-inc/blufi-network/crypto"
 	"github.com/stretchr/testify/assert"
 )
 

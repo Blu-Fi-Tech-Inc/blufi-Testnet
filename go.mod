@@ -1,4 +1,4 @@
-module github.com/blu-fi-tech-inc/boriqua_project
+module github.com/blu-fi-tech-inc/blufi-network
 
 go 1.22.5
 

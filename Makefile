@@ -4,7 +4,7 @@ export GOPATH
 export GOBIN
 
 build:
-	go build -o $(GOBIN)/boriqua_project ./cmd/node
+	go build -o $(GOBIN)/blufi-network ./cmd/node
 
 run: build
-	$(GOBIN)/boriqua_project
+	$(GOBIN)/blufi-network

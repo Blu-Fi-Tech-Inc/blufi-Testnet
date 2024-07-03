@@ -8,7 +8,7 @@ import (
     "crypto/sha256"
     "math/big"
 
-    "github.com/blu-fi-tech-inc/boriqua_project/types"
+    "github.com/blu-fi-tech-inc/blufi-network/types"
 )
 
 type PrivateKey struct {
