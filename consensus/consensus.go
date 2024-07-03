@@ -1,112 +1,111 @@
 package consensus
 
 import (
-	"fmt"
-	"sync"
-
+	"github.com/blu-fi-tech-inc/boriqua_project/types"
 	"github.com/blu-fi-tech-inc/boriqua_project/core"
+	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
+	"errors"
 )
 
-// Consensus represents the consensus mechanism.
+// Consensus represents the consensus mechanism
 type Consensus struct {
-	mu       sync.Mutex
-	chain    []*core.Block
-	peers    []*network.Peer
-	proposal *core.Block // The current proposed block for consensus
+	stakeManager *StakeManager
+	pos          *PoS
 }
 
-// NewConsensus creates a new Consensus instance.
-func NewConsensus() *Consensus {
+// NewConsensus initializes a new consensus mechanism
+func NewConsensus(sm *StakeManager, pos *PoS) *Consensus {
 	return &Consensus{
-		chain: []*core.Block{},
-		peers: []*network.Peer{},
+		stakeManager: sm,
+		pos:          pos,
 	}
 }
 
-// AddPeer adds a new peer to the consensus network.
-func (c *Consensus) AddPeer(peer *network.Peer) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.peers = append(c.peers, peer)
-}
-
-// ProposeBlock proposes a new block for consensus.
-func (c *Consensus) ProposeBlock(block *core.Block) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.proposal = block
-}
-
-// FinalizeBlock finalizes the proposed block and adds it to the chain.
-func (c *Consensus) FinalizeBlock() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.proposal == nil {
-		return fmt.Errorf("no block proposal to finalize")
+// ValidateBlock checks if a block is valid
+func (c *Consensus) ValidateBlock(block *types.Block) bool {
+	validators, err := c.pos.SelectValidators(10) // Assume 10 validators
+	if err != nil {
+		return false
 	}
 
-	c.chain = append(c.chain, c.proposal)
-	c.proposal = nil // Clear the current proposal after finalization
+	for _, validator := range validators {
+		if validator.Address == block.Proposer {
+			return true
+		}
+	}
+	return false
+}
 
+// AddBlock adds a block to the blockchain if valid
+func (c *Consensus) AddBlock(block *types.Block) bool {
+	if c.ValidateBlock(block) {
+		// Add block to the blockchain
+		if err := core.GetBlockchain().AddBlock(block); err != nil {
+			return false
+		}
+		return true
+	}
+	return false
+}
+
+// PoS represents the Proof of Stake consensus mechanism
+type PoS struct {
+	validatorSet []crypto.PublicKey
+}
+
+// NewPoS initializes a new PoS instance
+func NewPoS(validators []crypto.PublicKey) *PoS {
+	return &PoS{
+		validatorSet: validators,
+	}
+}
+
+// SelectValidators selects a set of validators for block validation
+func (pos *PoS) SelectValidators(numValidators int) ([]Validator, error) {
+	if len(pos.validatorSet) < numValidators {
+		return nil, errors.New("not enough validators")
+	}
+	var validators []Validator
+	for i := 0; i < numValidators; i++ {
+		validators = append(validators, Validator{
+			Address: pos.validatorSet[i].Address(),
+		})
+	}
+	return validators, nil
+}
+
+// SelectValidator selects a validator for the given block
+func (pos *PoS) SelectValidator(block *core.Block, chain *core.Blockchain) error {
+	validators, err := pos.SelectValidators(1)
+	if err != nil {
+		return err
+	}
+
+	block.Proposer = validators[0].Address
 	return nil
 }
 
-// GetChain returns the current blockchain.
-func (c *Consensus) GetChain() []*core.Block {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.chain
+// Validator represents a blockchain validator
+type Validator struct {
+	Address crypto.Address
 }
 
-// HandleRPC handles incoming RPC messages related to consensus.
-func (c *Consensus) HandleRPC(rpc network.RPC) error {
-	// Example of handling different types of RPC messages related to consensus
-	switch rpc.Type {
-	case network.RPCTypes.Proposal:
-		// Process proposal from peer
-		// For example:
-		// c.ProposeBlock(rpc.Payload)
-		return nil
-	case network.RPCTypes.Vote:
-		// Process vote from peer
-		// For example:
-		// c.ProcessVote(rpc.Payload)
-		return nil
-	default:
-		return fmt.Errorf("unknown RPC type received: %s", rpc.Type)
-	}
+// StakeManager manages the staking process
+type StakeManager struct {
+	// Implementation details omitted for brevity
 }
 
-// Start starts the consensus process.
-func (c *Consensus) Start() {
-	// Example of starting the consensus process
-	// For example, listen for RPC messages, handle proposals, votes, etc.
-	// You can implement your specific logic here based on your consensus algorithm.
+// NewStakeManager initializes a new StakeManager instance
+func NewStakeManager() *StakeManager {
+	return &StakeManager{}
 }
 
-// Stop stops the consensus process.
-func (c *Consensus) Stop() {
-	// Example of stopping the consensus process
-	// For example, stop listening for RPC messages, clean up resources, etc.
+// AddStake adds stake for a given address
+func (sm *StakeManager) AddStake(address crypto.Address, amount int64) {
+	// Implementation details omitted for brevity
 }
 
-// Example function to demonstrate usage
-func ExampleUsage() {
-	consensus := NewConsensus()
-
-	// Example of adding peers
-	peer1 := &network.Peer{} // Initialize your peer here
-	peer2 := &network.Peer{} // Initialize another peer
-	consensus.AddPeer(peer1)
-	consensus.AddPeer(peer2)
-
-	// Example of proposing and finalizing blocks
-	block := &core.Block{} // Initialize your block here
-	consensus.ProposeBlock(block)
-	consensus.FinalizeBlock()
-
-	// Example of retrieving the blockchain
-	chain := consensus.GetChain()
-	fmt.Printf("Current blockchain length: %d\n", len(chain))
+// RemoveStake removes stake for a given address
+func (sm *StakeManager) RemoveStake(address crypto.Address, amount int64) {
+	// Implementation details omitted for brevity
 }

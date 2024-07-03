@@ -4,7 +4,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509" // Importing x509 package
+	"crypto/x509"
+	"encoding/hex"
+	"errors"
 
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
@@ -30,9 +32,24 @@ func (pub *PublicKey) Address() (types.Address, error) {
 	if err != nil {
 		return types.Address{}, err
 	}
-	addr, err := types.AddressFromBytes(pubBytes)
-	if err != nil {
-		return types.Address{}, err
-	}
+
+	hash := sha256.Sum256(pubBytes)
+	addr := types.Address(hex.EncodeToString(hash[:]))
 	return addr, nil
+}
+
+func (priv *PrivateKey) Sign(data []byte) (*Signature, error) {
+	r, s, err := ecdsa.Sign(rand.Reader, priv.PrivateKey, data)
+	if err != nil {
+		return nil, err
+	}
+	return &Signature{R: r, S: s}, nil
+}
+
+func (pub *PublicKey) Verify(data []byte, sig *Signature) bool {
+	return ecdsa.Verify(pub.PublicKey, data, sig.R, sig.S)
+}
+
+type Signature struct {
+	R, S *big.Int
 }

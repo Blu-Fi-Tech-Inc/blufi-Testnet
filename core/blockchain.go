@@ -10,32 +10,24 @@ import (
 )
 
 type Blockchain struct {
-	logger log.Logger
-	store  Storage
-	// TODO: double check this!
-	lock       sync.RWMutex
-	headers    []*Header
-	blocks     []*Block
-	txStore    map[types.Hash]*Transaction
-	blockStore map[types.Hash]*Block
-
-	accountState *AccountState
-
-	stateLock       sync.RWMutex
+	logger         log.Logger
+	store          Storage
+	lock           sync.RWMutex
+	headers        []*Header
+	blocks         []*Block
+	txStore        map[types.Hash]*Transaction
+	blockStore     map[types.Hash]*Block
+	accountState   *AccountState
+	stateLock      sync.RWMutex
 	collectionState map[types.Hash]*CollectionTx
 	mintState       map[types.Hash]*MintTx
 	validator       Validator
-	// TODO: make this an interface.
-	contractState *State
+	contractState  *State
 }
 
 // NewBlockchain initializes a new blockchain with a genesis block
 func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
-	// We should create all states inside the scope of the newblockchain.
-
-	// TODO: read this from disk later on
 	accountState := NewAccountState()
-
 	coinbase := crypto.PublicKey{}
 	accountState.CreateAccount(coinbase.Address())
 
@@ -76,7 +68,8 @@ func (bc *Blockchain) handleNativeTransfer(tx *Transaction) error {
 		"msg", "handle native token transfer",
 		"from", tx.From,
 		"to", tx.To,
-		"value", tx.Value)
+		"value", tx.Value,
+	)
 
 	return bc.accountState.Transfer(tx.From.Address(), tx.To.Address(), tx.Value)
 }
@@ -95,7 +88,6 @@ func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 			return fmt.Errorf("collection (%s) does not exist on the blockchain", t.Collection)
 		}
 		bc.mintState[hash] = &t
-
 		bc.logger.Log("msg", "created new NFT mint", "NFT", t.NFT, "collection", t.Collection)
 	default:
 		return fmt.Errorf("unsupported tx type %v", t)
@@ -106,7 +98,7 @@ func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 
 // GetBlockByHash retrieves a block by its hash
 func (bc *Blockchain) GetBlockByHash(hash types.Hash) (*Block, error) {
-	bc.lock.RLock() // Use RLock for read-only access
+	bc.lock.RLock()
 	defer bc.lock.RUnlock()
 
 	block, ok := bc.blockStore[hash]
@@ -123,7 +115,7 @@ func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
 		return nil, fmt.Errorf("given height (%d) too high", height)
 	}
 
-	bc.lock.RLock() // Use RLock for read-only access
+	bc.lock.RLock()
 	defer bc.lock.RUnlock()
 
 	return bc.blocks[height], nil
@@ -135,7 +127,7 @@ func (bc *Blockchain) GetHeader(height uint32) (*Header, error) {
 		return nil, fmt.Errorf("given height (%d) too high", height)
 	}
 
-	bc.lock.RLock() // Use RLock for read-only access
+	bc.lock.RLock()
 	defer bc.lock.RUnlock()
 
 	return bc.headers[height], nil
@@ -143,7 +135,7 @@ func (bc *Blockchain) GetHeader(height uint32) (*Header, error) {
 
 // GetTxByHash retrieves a transaction by its hash
 func (bc *Blockchain) GetTxByHash(hash types.Hash) (*Transaction, error) {
-	bc.lock.RLock() // Use RLock for read-only access
+	bc.lock.RLock()
 	defer bc.lock.RUnlock()
 
 	tx, ok := bc.txStore[hash]
@@ -169,25 +161,20 @@ func (bc *Blockchain) Height() uint32 {
 
 // handleTransaction processes a transaction
 func (bc *Blockchain) handleTransaction(tx *Transaction) error {
-	// If we have data inside execute that data on the VM.
 	if len(tx.Data) > 0 {
 		bc.logger.Log("msg", "executing code", "len", len(tx.Data), "hash", tx.Hash(TxHasher{}))
-
 		vm := NewVM(tx.Data, bc.contractState)
 		if err := vm.Run(); err != nil {
 			return err
 		}
 	}
 
-	// If the txInner of the transaction is not nil we need to handle
-	// the native NFT implementation.
 	if tx.TxInner != nil {
 		if err := bc.handleNativeNFT(tx); err != nil {
 			return err
 		}
 	}
 
-	// Handle the native transaction here
 	if tx.Value > 0 {
 		if err := bc.handleNativeTransfer(tx); err != nil {
 			return err
@@ -203,18 +190,12 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 	for i := 0; i < len(b.Transactions); i++ {
 		if err := bc.handleTransaction(b.Transactions[i]); err != nil {
 			bc.logger.Log("error", err.Error())
-
 			b.Transactions[i] = b.Transactions[len(b.Transactions)-1]
 			b.Transactions = b.Transactions[:len(b.Transactions)-1]
-
 			continue
 		}
 	}
 	bc.stateLock.Unlock()
-
-	// fmt.Println("========ACCOUNT STATE==============")
-	// fmt.Printf("%+v\n", bc.accountState.accounts)
-	// fmt.Println("========ACCOUNT STATE==============")
 
 	bc.lock.Lock()
 	bc.headers = append(bc.headers, b.Header)

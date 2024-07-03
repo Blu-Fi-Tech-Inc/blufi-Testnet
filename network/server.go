@@ -3,6 +3,7 @@ package network
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/blu-fi-tech-inc/boriqua_project/api"
+	"github.com/blu-fi-tech-inc/boriqua_project/consensus"
 	"github.com/blu-fi-tech-inc/boriqua_project/core"
 	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
@@ -20,16 +22,19 @@ var defaultBlockTime = 5 * time.Second
 
 // ServerOpts defines options for configuring the Server instance.
 type ServerOpts struct {
-	APIListenAddr string
-	SeedNodes     []string
-	ListenAddr    string
-	TCPTransport  *TCPTransport
-	ID            string
-	Logger        log.Logger
-	RPCDecodeFunc RPCDecodeFunc
-	RPCProcessor  RPCProcessor
-	BlockTime     time.Duration
-	PrivateKey    *crypto.PrivateKey
+	APIListenAddr  string
+	SeedNodes      []string
+	ListenAddr     string
+	TCPTransport   *TCPTransport
+	ID             string
+	Logger         log.Logger
+	RPCDecodeFunc  RPCDecodeFunc
+	RPCProcessor   RPCProcessor
+	BlockTime      time.Duration
+	PrivateKey     *crypto.PrivateKey
+	StakeManager   *consensus.StakeManager
+	PoS            *consensus.PoS
+	BlockchainName string // Added field for blockchain name
 }
 
 // Server represents the main server instance.
@@ -45,6 +50,7 @@ type Server struct {
 	rpcCh       chan RPC
 	quitCh      chan struct{}
 	txChan      chan *core.Transaction
+	pos         *consensus.PoS
 }
 
 // NewServer creates a new Server instance with the provided options.
@@ -60,10 +66,12 @@ func NewServer(opts ServerOpts) (*Server, error) {
 		opts.Logger = log.With(opts.Logger, "addr", opts.ID)
 	}
 
-	chain, err := core.NewBlockchain(opts.Logger, genesisBlock())
+	chain, err := core.NewBlockchain(opts.Logger, genesisBlock(), opts.BlockchainName)
 	if err != nil {
 		return nil, err
 	}
+
+	opts.Logger.Log("msg", "Initializing blockchain", "name", opts.BlockchainName)
 
 	// Channel used to communicate between the JSON RPC server and the node.
 	txChan := make(chan *core.Transaction)
@@ -94,6 +102,7 @@ func NewServer(opts ServerOpts) (*Server, error) {
 		rpcCh:        make(chan RPC),
 		quitCh:       make(chan struct{}, 1),
 		txChan:       txChan,
+		pos:          opts.PoS,
 	}
 
 	s.TCPTransport.peerCh = peerCh
@@ -287,137 +296,146 @@ func (s *Server) processStatusMessage(from net.Addr, data *StatusMessage) error 
 
 	if data.CurrentHeight <= s.chain.Height() {
 		s.Logger.Log("msg", "cannot sync block height too low", "ourHeight", s.chain.Height(), "theirHeight", data.CurrentHeight, "addr", from)
-return nil
-}
-go s.requestBlocksLoop(from)
+		return nil
+	}
 
-return nil
+	go s.requestBlocksLoop(from)
+
+	return nil
 }
 
 // processGetStatusMessage handles the reception of GetStatus messages from peers.
 func (s *Server) processGetStatusMessage(from net.Addr, data *GetStatusMessage) error {
-s.Logger.Log("msg", "received getStatus message", "from", from)
-if s.mempool.Contains(hash) {
-	return nil
-}
+	s.Logger.Log("msg", "received getStatus message", "from", from)
+	
+	statusMsg := &StatusMessage{
+		CurrentHeight: s.chain.Height(),
+	}
 
-if err := tx.Verify(); err != nil {
-	return err
-}
+	buf := new(bytes.Buffer)
+	if err := gob.NewEncoder(buf).Encode(statusMsg); err != nil {
+		return err
+	}
 
-go s.broadcastTx(tx)
+	msg := NewMessage(MessageTypeStatus, buf.Bytes())
+	peer, ok := s.peerMap[from]
+	if !ok {
+		return fmt.Errorf("peer %s not known", from)
+	}
 
-s.mempool.Add(tx)
-
-return nil
+	return peer.Send(msg.Bytes())
 }
 
 // requestBlocksLoop continuously requests blocks from a peer.
 func (s *Server) requestBlocksLoop(peer net.Addr) error {
-ticker := time.NewTicker(3 * time.Second)
-for {
-	ourHeight := s.chain.Height()
+	ticker := time.NewTicker(3 * time.Second)
+	for {
+		ourHeight := s.chain.Height()
 
-	s.Logger.Log("msg", "requesting new blocks", "requesting height", ourHeight+1)
+		s.Logger.Log("msg", "requesting new blocks", "requesting height", ourHeight+1)
 
-	getBlocksMessage := &GetBlocksMessage{
-		From: ourHeight + 1,
-		To:   0,
+		getBlocksMessage := &GetBlocksMessage{
+			From: ourHeight + 1,
+			To:   0,
+		}
+
+		buf := new(bytes.Buffer)
+		if err := gob.NewEncoder(buf).Encode(getBlocksMessage); err != nil {
+			return err
+		}
+
+		s.mu.RLock()
+		defer s.mu.RUnlock()
+
+		msg := NewMessage(MessageTypeGetBlocks, buf.Bytes())
+		peer, ok := s.peerMap[peer]
+		if !ok {
+			return fmt.Errorf("peer %s not known", peer)
+		}
+
+		if err := peer.Send(msg.Bytes()); err != nil {
+			s.Logger.Log("error", "failed to send to peer", "err", err, "peer", peer)
+		}
+
+		<-ticker.C
 	}
-
-	buf := new(bytes.Buffer)
-	if err := gob.NewEncoder(buf).Encode(getBlocksMessage); err != nil {
-		return err
-	}
-
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	msg := NewMessage(MessageTypeGetBlocks, buf.Bytes())
-	peer, ok := s.peerMap[peer]
-	if !ok {
-		return fmt.Errorf("peer %s not known", peer)
-	}
-
-	if err := peer.Send(msg.Bytes()); err != nil {
-		s.Logger.Log("error", "failed to send to peer", "err", err, "peer", peer)
-	}
-
-	<-ticker.C
-}
 }
 
 // broadcastBlock broadcasts a new block to all connected peers.
 func (s *Server) broadcastBlock(b *core.Block) error {
-buf := &bytes.Buffer{}
-if err := b.Encode(core.NewGobBlockEncoder(buf)); err != nil {
-return err
-}
-msg := NewMessage(MessageTypeBlock, buf.Bytes())
+	buf := &bytes.Buffer{}
+	if err := b.Encode(core.NewGobBlockEncoder(buf)); err != nil {
+		return err
+	}
+	msg := NewMessage(MessageTypeBlock, buf.Bytes())
 
-return s.broadcast(msg.Bytes())
+	return s.broadcast(msg.Bytes())
 }
 
 // broadcastTx broadcasts a new transaction to all connected peers.
 func (s *Server) broadcastTx(tx *core.Transaction) error {
-buf := &bytes.Buffer{}
-if err := tx.Encode(core.NewGobTxEncoder(buf)); err != nil {
-return err
-}
-msg := NewMessage(MessageTypeTx, buf.Bytes())
+	buf := &bytes.Buffer{}
+	if err := tx.Encode(core.NewGobTxEncoder(buf)); err != nil {
+		return err
+	}
+	msg := NewMessage(MessageTypeTx, buf.Bytes())
 
-return s.broadcast(msg.Bytes())
+	return s.broadcast(msg.Bytes())
 }
 
 // createNewBlock creates a new block and adds it to the blockchain.
 func (s *Server) createNewBlock() error {
-currentHeader, err := s.chain.GetHeader(s.chain.Height())
-if err != nil {
-return err
-}
-txx := s.mempool.Pending()
+	currentHeader, err := s.chain.GetHeader(s.chain.Height())
+	if err != nil {
+		return err
+	}
+	txx := s.mempool.Pending()
 
-block, err := core.NewBlockFromPrevHeader(currentHeader, txx)
-if err != nil {
-	return err
-}
+	block, err := core.NewBlockFromPrevHeader(currentHeader, txx)
+	if err != nil {
+		return err
+	}
 
-if err := block.Sign(*s.PrivateKey); err != nil {
-	return err
-}
+	if err := s.pos.SelectValidator(block, s.chain); err != nil {
+		return err
+	}
 
-if err := s.chain.AddBlock(block); err != nil {
-	return err
-}
+	if err := block.Sign(*s.PrivateKey); err != nil {
+		return err
+	}
 
-s.mempool.ClearPending()
+	if err := s.chain.AddBlock(block); err != nil {
+		return err
+	}
 
-go s.broadcastBlock(block)
+	s.mempool.ClearPending()
 
-return nil
+	go s.broadcastBlock(block)
+
+	return nil
 }
 
 // genesisBlock creates and returns the genesis block of the blockchain.
 func genesisBlock() *core.Block {
-header := &core.Header{
-Version: 1,
-DataHash: types.Hash{},
-Height: 0,
-Timestamp: 000000,
-}
-b, _ := core.NewBlock(header, nil)
+	header := &core.Header{
+		Version:   1,
+		DataHash:  types.Hash{},
+		Height:    0,
+		Timestamp: 0,
+	}
+	b, _ := core.NewBlock(header, nil)
 
-coinbase := crypto.PublicKey{}
-tx := core.NewTransaction(nil)
-tx.From = coinbase
-tx.To = coinbase
-tx.Value = 10_000_000
-b.Transactions = append(b.Transactions, tx)
+	coinbase := crypto.PublicKey{}
+	tx := core.NewTransaction(nil)
+	tx.From = coinbase
+	tx.To = coinbase
+	tx.Value = 10_000_000
+	b.Transactions = append(b.Transactions, tx)
 
-privKey := crypto.GeneratePrivateKey()
-if err := b.Sign(privKey); err != nil {
-	panic(err)
-}
+	privKey := crypto.GeneratePrivateKey()
+	if err := b.Sign(privKey); err != nil {
+		panic(err)
+	}
 
-return b
+	return b
 }

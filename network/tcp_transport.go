@@ -9,11 +9,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TCPPeer represents a TCP peer.
 type TCPPeer struct {
 	conn     net.Conn
 	Outgoing bool
 }
 
+// Send sends data to the peer.
 func (p *TCPPeer) Send(b []byte) error {
 	_, err := p.conn.Write(b)
 	if err != nil {
@@ -22,6 +24,7 @@ func (p *TCPPeer) Send(b []byte) error {
 	return err
 }
 
+// readLoop continuously reads from the peer connection.
 func (p *TCPPeer) readLoop(rpcCh chan RPC) {
 	buf := make([]byte, 4096)
 	for {
@@ -43,12 +46,14 @@ func (p *TCPPeer) readLoop(rpcCh chan RPC) {
 	}
 }
 
+// TCPTransport manages TCP connections and peers.
 type TCPTransport struct {
 	peerCh     chan *TCPPeer
 	listenAddr string
 	listener   net.Listener
 }
 
+// NewTCPTransport creates a new TCPTransport instance.
 func NewTCPTransport(addr string, peerCh chan *TCPPeer) *TCPTransport {
 	return &TCPTransport{
 		peerCh:     peerCh,
@@ -56,6 +61,7 @@ func NewTCPTransport(addr string, peerCh chan *TCPPeer) *TCPTransport {
 	}
 }
 
+// Start starts accepting incoming connections.
 func (t *TCPTransport) Start() error {
 	ln, err := net.Listen("tcp", t.listenAddr)
 	if err != nil {
@@ -72,6 +78,7 @@ func (t *TCPTransport) Start() error {
 	return nil
 }
 
+// acceptLoop continuously accepts incoming connections.
 func (t *TCPTransport) acceptLoop() {
 	for {
 		conn, err := t.listener.Accept()

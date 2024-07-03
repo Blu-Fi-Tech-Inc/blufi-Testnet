@@ -25,7 +25,7 @@ func RandomHash() types.Hash {
 
 // NewRandomTransaction creates a new random transaction without signature.
 func NewRandomTransaction(size int) *core.Transaction {
-	return core.NewTransaction(RandomBytes(size))
+	return core.NewTransaction(types.Address(RandomHash()), types.Address(RandomHash()), uint64(rand.Intn(1000)), RandomBytes(size))
 }
 
 // NewRandomTransactionWithSignature creates a new random transaction and signs it with the provided private key.

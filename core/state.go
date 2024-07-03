@@ -17,7 +17,7 @@ func NewState() *State {
 	}
 }
 
-func (s *State) Put(k, v []byte) error {
+func (s *State) Put(k []byte, v []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

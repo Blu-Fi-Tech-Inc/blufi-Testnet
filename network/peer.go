@@ -33,19 +33,22 @@ func (p *Peer) ReadLoop(rpcCh chan<- RPC) {
 	for {
 		n, err := p.conn.Read(buf)
 		if err == io.EOF {
-			continue // Connection closed by peer.
+			fmt.Printf("Connection closed by peer: %s\n", p.conn.RemoteAddr().String())
+			break
 		}
 		if err != nil {
-			fmt.Printf("Error reading from peer: %s\n", err)
-			continue
+			fmt.Printf("Error reading from peer %s: %s\n", p.conn.RemoteAddr().String(), err)
+			break
 		}
 
-		msg := buf[:n]
+		msg := make([]byte, n)
+		copy(msg, buf[:n])
 		rpcCh <- RPC{
 			From:    p.conn.RemoteAddr().String(),
 			Payload: bytes.NewReader(msg),
 		}
 	}
+	p.conn.Close()
 }
 
 // Close closes the peer connection.

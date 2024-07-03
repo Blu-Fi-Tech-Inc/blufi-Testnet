@@ -11,7 +11,9 @@ func (priv *PrivateKey) Sign(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return append(r.Bytes(), s.Bytes()...), nil
+	// Concatenate r and s into a single byte slice
+	signature := append(r.Bytes(), s.Bytes()...)
+	return signature, nil
 }
 
 func VerifySignature(pub *PublicKey, data, signature []byte) bool {

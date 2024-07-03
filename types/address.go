@@ -19,7 +19,7 @@ func (a Address) String() string {
 }
 
 // AddressFromBytes creates an Address from a byte slice.
-// It panics if the byte slice length is not 20.
+// It returns an error if the byte slice length is not 20.
 func AddressFromBytes(b []byte) (Address, error) {
 	if len(b) != 20 {
 		return Address{}, fmt.Errorf("invalid byte length: expected 20, got %d", len(b))

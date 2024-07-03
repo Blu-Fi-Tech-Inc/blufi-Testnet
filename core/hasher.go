@@ -9,36 +9,44 @@ import (
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
 
-type Hasher[T any] interface {
-	Hash(T) types.Hash
+type Hasher interface {
+	Hash(interface{}) types.Hash
 }
 
 type BlockHasher struct{}
 
-func (BlockHasher) Hash(b *Header) types.Hash {
-	h := sha256.Sum256(b.Bytes())
+func (BlockHasher) Hash(b interface{}) types.Hash {
+	header, ok := b.(*Header)
+	if !ok {
+		log.Fatalf("BlockHasher: expected *Header, got %T", b)
+	}
+
+	h := sha256.Sum256(header.Bytes())
 	return types.Hash(h)
 }
 
 type TxHasher struct{}
 
-// Hash will hash the whole bytes of the TX without exception.
-func (TxHasher) Hash(tx *Transaction) types.Hash {
-	buf := new(bytes.Buffer)
+func (TxHasher) Hash(tx interface{}) types.Hash {
+	t, ok := tx.(*Transaction)
+	if !ok {
+		log.Fatalf("TxHasher: expected *Transaction, got %T", tx)
+	}
 
-	if err := binary.Write(buf, binary.LittleEndian, tx.Data); err != nil {
+	buf := new(bytes.Buffer)
+	if err := binary.Write(buf, binary.LittleEndian, t.Data); err != nil {
 		log.Fatalf("failed to write tx.Data: %v", err)
 	}
-	if err := binary.Write(buf, binary.LittleEndian, tx.To); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, t.To); err != nil {
 		log.Fatalf("failed to write tx.To: %v", err)
 	}
-	if err := binary.Write(buf, binary.LittleEndian, tx.Value); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, t.Value); err != nil {
 		log.Fatalf("failed to write tx.Value: %v", err)
 	}
-	if err := binary.Write(buf, binary.LittleEndian, tx.From); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, t.From); err != nil {
 		log.Fatalf("failed to write tx.From: %v", err)
 	}
-	if err := binary.Write(buf, binary.LittleEndian, tx.Nonce); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, t.Nonce); err != nil {
 		log.Fatalf("failed to write tx.Nonce: %v", err)
 	}
 

@@ -1,11 +1,12 @@
 module github.com/blu-fi-tech-inc/boriqua_project
 
-go 1.22.4 // Adjusted to a valid Go version
+go 1.17
 
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-kit/log v0.2.1
 	github.com/go-logfmt/logfmt v0.5.1
+	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/labstack/echo/v4 v4.9.0
 	github.com/labstack/gommon v0.3.1
 	github.com/mattn/go-colorable v0.1.11
@@ -22,7 +23,5 @@ require (
 	golang.org/x/text v0.3.7
 	gopkg.in/yaml.v3 v3.0.1
 )
-
-require github.com/gorilla/mux v1.8.1 // indirect
 
 // Indirect dependencies are managed by Go modules.
