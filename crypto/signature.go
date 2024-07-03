@@ -20,7 +20,7 @@ func Sign(privKey *PrivateKey, data []byte) (*Signature, error) {
 	return &Signature{R: r, S: s}, nil
 }
 
-// VerifySignature verifies an ECDSA signature given the public key, data, and signature.
-func VerifySignature(pubKey *PublicKey, data []byte, signature *Signature) bool {
+// VerifyECDSASignature verifies an ECDSA signature given the public key, data, and signature.
+func VerifyECDSASignature(pubKey *PublicKey, data []byte, signature *Signature) bool {
 	return ecdsa.Verify(pubKey.PublicKey, data, signature.R, signature.S)
 }
