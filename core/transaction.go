@@ -66,7 +66,7 @@ func (tx *Transaction) Sign(privKey *crypto.PrivateKey) error {
 	}
 
 	tx.From = crypto.PublicKey{PublicKey: &privKey.PublicKey}
-    tx.Signature = sig
+	tx.Signature = sig
 
 	return nil
 }
@@ -77,33 +77,33 @@ func (tx *Transaction) Verify() error {
 	}
 
 	hash := tx.Hash(TxHasher{})
-    pubKey := &tx.From
-    if !crypto.VerifySignature(pubKey, hash[:], tx.Signature) {
-        return fmt.Errorf("invalid transaction signature")
-    }
+	pubKey := &tx.From
+	if !crypto.VerifySignature(pubKey, hash[:], tx.Signature) {
+		return fmt.Errorf("invalid transaction signature")
+	}
 
 	// Verify the inner transaction if exists
 	switch innerTx := tx.TxInner.(type) {
 	case CollectionTx:
 		// Add specific verification for CollectionTx if needed
 	case MintTx:
-        if !crypto.VerifySignature(&innerTx.CollectionOwner, innerTx.Collection[:], innerTx.Signature) {
-            return fmt.Errorf("invalid mint transaction signature")
-        }
-    }
+		if !crypto.VerifySignature(&innerTx.CollectionOwner, innerTx.Collection[:], innerTx.Signature) {
+			return fmt.Errorf("invalid mint transaction signature")
+		}
+	}
 
 	return nil
 }
 
 func (tx *Transaction) Decode(dec *gob.Decoder) error {
-    return dec.Decode(tx)
+	return dec.Decode(tx)
 }
 
 func (tx *Transaction) Encode(enc *gob.Encoder) error {
-    return enc.Encode(tx)
+	return enc.Encode(tx)
 }
 
 func init() {
-    gob.Register(CollectionTx{})
-    gob.Register(MintTx{})
+	gob.Register(CollectionTx{})
+	gob.Register(MintTx{})
 }

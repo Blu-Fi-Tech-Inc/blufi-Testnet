@@ -14,11 +14,11 @@ import (
 
 // Header represents the header of a block.
 type Header struct {
-	Version       uint32       // Version of the block
-	DataHash      types.Hash   // Hash of the block's data
-	PrevBlockHash types.Hash   // Hash of the previous block's header
-	Height        uint32       // Height of the block in the blockchain
-	Timestamp     int64        // Timestamp when the block was created
+	Version       uint32     // Version of the block
+	DataHash      types.Hash // Hash of the block's data
+	PrevBlockHash types.Hash // Hash of the previous block's header
+	Height        uint32     // Height of the block in the blockchain
+	Timestamp     int64      // Timestamp when the block was created
 }
 
 // Bytes serializes the header into a byte slice using gob encoding.
@@ -33,11 +33,11 @@ func (h *Header) Bytes() []byte {
 
 // Block represents a block in the blockchain.
 type Block struct {
-	*Header             // Pointer to the block's header
-	Transactions []*Transaction // List of transactions in the block
+	*Header                 // Pointer to the block's header
+	Transactions []*Transaction  // List of transactions in the block
 	Validator    crypto.PublicKey // Public key of the validator who created the block
 	Signature    []byte
-    hash         types.Hash
+	hash         types.Hash
 }
 
 // NewBlock creates a new block with the given header and transactions.
@@ -77,7 +77,7 @@ func (b *Block) AddTransaction(tx *Transaction) {
 	b.DataHash = hash
 }
 
-// Update the Sign method in Block struct
+// Sign signs the block with the given private key.
 func (b *Block) Sign(privKey *crypto.PrivateKey) error {
 	hash := b.Hash(BlockHasher{})
 	sig, err := privKey.Sign(b.Header.Bytes())
@@ -98,13 +98,13 @@ func (b *Block) Verify() error {
 	}
 
 	if !crypto.VerifySignature(&b.Validator, b.Header.Bytes(), b.Signature) {
-        return fmt.Errorf("block has an invalid signature")
+		return fmt.Errorf("block has an invalid signature")
 	}
 
 	for _, tx := range b.Transactions {
-        if err := tx.Verify(); err != nil {
-            return err
-        }
+		if err := tx.Verify(); err != nil {
+			return err
+		}
 	}
 
 	dataHash, err := CalculateDataHash(b.Transactions)
@@ -121,32 +121,32 @@ func (b *Block) Verify() error {
 
 // Decode decodes the block using the provided decoder.
 func (b *Block) Decode(dec *gob.Decoder) error {
-    return dec.Decode(b)
+	return dec.Decode(b)
 }
 
 // Encode encodes the block using the provided encoder.
 func (b *Block) Encode(enc *gob.Encoder) error {
-    return enc.Encode(b)
+	return enc.Encode(b)
 }
 
 // Hash computes and returns the hash of the block's header using the provided hasher.
 func (b *Block) Hash(hasher Hasher) types.Hash {
-    if b.hash.IsZero() {
-        b.hash = hasher.Hash(b.Header)
-    }
+	if b.hash.IsZero() {
+		b.hash = hasher.Hash(b.Header)
+	}
 
-    return b.hash
+	return b.hash
 }
 
 // CalculateDataHash computes the hash of the block's data (transactions).
 func CalculateDataHash(txx []*Transaction) (types.Hash, error) {
-    buf := &bytes.Buffer{}
+	buf := &bytes.Buffer{}
 
-    for _, tx := range txx {
-        if err := tx.Encode(gob.NewEncoder(buf)); err != nil {
-            return types.Hash{}, err
-        }
-    }
+	for _, tx := range txx {
+		if err := tx.Encode(gob.NewEncoder(buf)); err != nil {
+			return types.Hash{}, err
+		}
+	}
 
-    return types.Hash(sha256.Sum256(buf.Bytes())), nil
+	return types.Hash(sha256.Sum256(buf.Bytes())), nil
 }
