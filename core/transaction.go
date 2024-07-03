@@ -1,7 +1,6 @@
 package core
 
 import (
-	"crypto/ecdsa"
 	"encoding/gob"
 	"fmt"
 	"math/rand"

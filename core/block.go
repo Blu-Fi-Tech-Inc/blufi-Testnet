@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
@@ -79,7 +78,6 @@ func (b *Block) AddTransaction(tx *Transaction) {
 
 // Sign signs the block with the given private key.
 func (b *Block) Sign(privKey *crypto.PrivateKey) error {
-	hash := b.Hash(BlockHasher{})
 	sig, err := privKey.Sign(b.Header.Bytes())
 	if err != nil {
 		return err

@@ -29,15 +29,9 @@ type Blockchain struct {
 }
 
 // NewBlockchain creates a new Blockchain instance.
-func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
-	\
-	accountState := NewAccountState()
-
-	coinbase := crypto.PublicKey{}
-	accountState.CreateAccount(coinbase.Address())
-
+func NewBlockchain(store Store, l log.Logger, accountState *AccountState, genesis *Block) (*Blockchain, error) {
 	bc := &Blockchain{
-		store:           NewMemorystore(),
+		store:           store,
 		logger:          l,
 		accountState:    accountState,
 		collectionState: make(map[types.Hash]*CollectionTx),
@@ -46,6 +40,7 @@ func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
 		txStore:         make(map[types.Hash]*Transaction),
 		contractState:   NewState(),
 		headers:         []*Header{},
+		blocks:          []*Block{},
 	}
 	bc.validator = NewBlockValidator(bc)
 	err := bc.addBlockWithoutValidation(genesis)
