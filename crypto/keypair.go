@@ -3,9 +3,9 @@ package crypto
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"crypto/x509" // Import from crypto package
-	"crypto/elliptic"
+	"crypto/sha256"
 	"encoding/hex"
+	"math/big"
 
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
@@ -19,7 +19,7 @@ type PublicKey struct {
 }
 
 func GenerateKeyPair() (*PrivateKey, *PublicKey, error) {
-	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	privKey, err := ecdsa.GenerateKey(ecdsa.P256(), rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -27,11 +27,7 @@ func GenerateKeyPair() (*PrivateKey, *PublicKey, error) {
 }
 
 func (pub *PublicKey) Address() (types.Address, error) {
-	pubBytes, err := x509.MarshalPKIXPublicKey(pub.PublicKey)
-	if err != nil {
-		return types.Address{}, err
-	}
-
+	pubBytes := elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 	hash := sha256.Sum256(pubBytes)
 	addr := types.Address(hex.EncodeToString(hash[:]))
 	return addr, nil
