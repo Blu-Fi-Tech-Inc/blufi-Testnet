@@ -5,7 +5,7 @@ import (
     "crypto/rand"
     "crypto/x509"
     "crypto/elliptic"
-    "encoding/hex"
+    "crypto/sha256"
     "math/big"
 
     "github.com/blu-fi-tech-inc/boriqua_project/types"
@@ -33,9 +33,8 @@ func (pub *PublicKey) Address() (types.Address, error) {
         return types.Address{}, err
     }
 
-    hash := types.HashBytes(pubBytes) // Assuming types.HashBytes hashes the public key bytes
-    addr := types.Address(hex.EncodeToString(hash[:]))
-    return addr, nil
+    hash := sha256.Sum256(pubBytes)
+    return types.AddressFromBytes(hash[:20])
 }
 
 func (priv *PrivateKey) Sign(data []byte) ([]byte, error) {
