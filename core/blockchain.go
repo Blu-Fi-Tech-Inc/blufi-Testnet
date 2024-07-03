@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 	"github.com/go-kit/log"
 )
@@ -28,8 +27,8 @@ type Blockchain struct {
 // NewBlockchain initializes a new blockchain with a genesis block
 func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
 	accountState := NewAccountState()
-	coinbase := crypto.PublicKey{}
-	accountState.CreateAccount(coinbase.Address())
+	coinbase := types.Address{} // Assuming types.Address is defined appropriately
+	accountState.CreateAccount(coinbase)
 
 	bc := &Blockchain{
 		contractState:   NewState(),

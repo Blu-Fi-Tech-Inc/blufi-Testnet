@@ -83,8 +83,8 @@ func (b *Block) Sign(privKey crypto.PrivateKey) error {
 		return err
 	}
 
-	b.Validator = privKey.PublicKey() // Assuming pubKey() extracts the public key from privKey
-	b.Signature = sig
+	b.Validator = privKey.PublicKey()
+	b.Signature = &sig
 
 	return nil
 }
