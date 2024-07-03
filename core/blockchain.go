@@ -24,18 +24,11 @@ type Blockchain struct {
 	collectionState map[types.Hash]*CollectionTx
 	mintState       map[types.Hash]*MintTx
 	validator       Validator
-
 	contractState   *State
 }
 
 // NewBlockchain creates a new Blockchain instance.
 func NewBlockchain(store Store, l log.Logger, accountState *AccountState, genesis *Block) (*Blockchain, error) {
-
-	accountState := NewAccountState()
-
-	coinbase := crypto.PublicKey{}
-	accountState.CreateAccount(coinbase.Address())
-
 	bc := &Blockchain{
 		store:           store,
 		logger:          l,
@@ -49,9 +42,11 @@ func NewBlockchain(store Store, l log.Logger, accountState *AccountState, genesi
 		blocks:          []*Block{},
 	}
 	bc.validator = NewBlockValidator(bc)
-	err := bc.addBlockWithoutValidation(genesis)
 
-	return bc, err
+	if err := bc.addBlockWithoutValidation(genesis); err != nil {
+		return nil, err
+	}
+	return bc, nil
 }
 
 // SetValidator sets the block validator.
@@ -239,5 +234,10 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 		"transactions", len(b.Transactions),
 	)
 
-	return bc.store.Put(b)
+	blockBytes, err := b.EncodeToBytes()
+	if err != nil {
+		return err
+	}
+
+	return bc.store.Put(b.Hash(BlockHasher{}).String(), blockBytes)
 }
