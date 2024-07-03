@@ -1,6 +1,6 @@
 module github.com/blu-fi-tech-inc/boriqua_project
 
-go 1.22.4
+go 1.22.5
 
 require (
 	github.com/go-kit/log v0.2.1
