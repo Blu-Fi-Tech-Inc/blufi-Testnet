@@ -83,7 +83,7 @@ func (b *Block) Sign(privKey crypto.PrivateKey) error {
 		return err
 	}
 
-	b.Validator = privKey.PublicKey()
+	b.Validator = privKey.PublicKey() // Assuming pubKey() extracts the public key from privKey
 	b.Signature = sig
 
 	return nil
@@ -99,12 +99,6 @@ func (b *Block) Verify() error {
 		return fmt.Errorf("block has an invalid signature")
 	}
 
-	for _, tx := range b.Transactions {
-		if err := tx.Verify(); err != nil {
-			return err
-		}
-	}
-
 	dataHash, err := CalculateDataHash(b.Transactions)
 	if err != nil {
 		return err
@@ -117,18 +111,8 @@ func (b *Block) Verify() error {
 	return nil
 }
 
-// Decode decodes the block using the provided decoder.
-func (b *Block) Decode(dec *gob.Decoder) error {
-	return dec.Decode(b)
-}
-
-// Encode encodes the block using the provided encoder.
-func (b *Block) Encode(enc *gob.Encoder) error {
-	return enc.Encode(b)
-}
-
 // Hash computes and returns the hash of the block's header using the provided hasher.
-func (b *Block) Hash(hasher Hasher[*Header]) types.Hash {
+func (b *Block) Hash(hasher Hasher) types.Hash {
 	if b.hash.IsZero() {
 		b.hash = hasher.Hash(b.Header)
 	}
@@ -141,7 +125,7 @@ func CalculateDataHash(txx []*Transaction) (types.Hash, error) {
 	buf := &bytes.Buffer{}
 
 	for _, tx := range txx {
-		if err := tx.Encode(NewGobTxEncoder(buf)); err != nil {
+		if err := tx.Encode(buf); err != nil {
 			return types.Hash{}, err
 		}
 	}

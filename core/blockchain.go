@@ -21,7 +21,7 @@ type Blockchain struct {
 	stateLock      sync.RWMutex
 	collectionState map[types.Hash]*CollectionTx
 	mintState       map[types.Hash]*MintTx
-	validator      Validator
+	validator       Validator
 	contractState  *State
 }
 
@@ -71,7 +71,16 @@ func (bc *Blockchain) handleNativeTransfer(tx *Transaction) error {
 		"value", tx.Value,
 	)
 
-	return bc.accountState.Transfer(tx.From.Address(), tx.To.Address(), tx.Value)
+	fromAddr, err := tx.From.Address()
+	if err != nil {
+		return err
+	}
+	toAddr, err := tx.To.Address()
+	if err != nil {
+		return err
+	}
+
+	return bc.accountState.Transfer(fromAddr, toAddr, tx.Value)
 }
 
 // handleNativeNFT processes native NFT transactions
@@ -79,18 +88,17 @@ func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 	hash := tx.Hash(TxHasher{})
 
 	switch t := tx.TxInner.(type) {
-	case CollectionTx:
-		bc.collectionState[hash] = &t
+	case *CollectionTx:
+		bc.collectionState[hash] = t
 		bc.logger.Log("msg", "created new NFT collection", "hash", hash)
-	case MintTx:
-		_, ok := bc.collectionState[t.Collection]
-		if !ok {
+	case *MintTx:
+		if _, ok := bc.collectionState[t.Collection]; !ok {
 			return fmt.Errorf("collection (%s) does not exist on the blockchain", t.Collection)
 		}
-		bc.mintState[hash] = &t
+		bc.mintState[hash] = t
 		bc.logger.Log("msg", "created new NFT mint", "NFT", t.NFT, "collection", t.Collection)
 	default:
-		return fmt.Errorf("unsupported tx type %v", t)
+		return fmt.Errorf("unsupported tx type %T", t)
 	}
 
 	return nil
@@ -170,8 +178,13 @@ func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 	}
 
 	if tx.TxInner != nil {
-		if err := bc.handleNativeNFT(tx); err != nil {
-			return err
+		switch tx.TxInner.(type) {
+		case *CollectionTx, *MintTx:
+			if err := bc.handleNativeNFT(tx); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unsupported tx type %T", tx.TxInner)
 		}
 	}
 
@@ -189,11 +202,9 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 	bc.stateLock.Lock()
 	defer bc.stateLock.Unlock()
 
-	for i := 0; i < len(b.Transactions); i++ {
-		if err := bc.handleTransaction(b.Transactions[i]); err != nil {
+	for _, tx := range b.Transactions {
+		if err := bc.handleTransaction(tx); err != nil {
 			bc.logger.Log("error", err.Error())
-			b.Transactions[i] = b.Transactions[len(b.Transactions)-1]
-			b.Transactions = b.Transactions[:len(b.Transactions)-1]
 			continue
 		}
 	}
