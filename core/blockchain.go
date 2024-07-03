@@ -21,7 +21,7 @@ type Blockchain struct {
 	stateLock      sync.RWMutex
 	collectionState map[types.Hash]*CollectionTx
 	mintState       map[types.Hash]*MintTx
-	validator       Validator
+	validator      Validator
 	contractState  *State
 }
 
@@ -187,6 +187,8 @@ func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 // addBlockWithoutValidation adds a block to the blockchain without validation
 func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 	bc.stateLock.Lock()
+	defer bc.stateLock.Unlock()
+
 	for i := 0; i < len(b.Transactions); i++ {
 		if err := bc.handleTransaction(b.Transactions[i]); err != nil {
 			bc.logger.Log("error", err.Error())
@@ -195,9 +197,10 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 			continue
 		}
 	}
-	bc.stateLock.Unlock()
 
 	bc.lock.Lock()
+	defer bc.lock.Unlock()
+
 	bc.headers = append(bc.headers, b.Header)
 	bc.blocks = append(bc.blocks, b)
 	bc.blockStore[b.Hash(BlockHasher{})] = b
@@ -205,7 +208,6 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 	for _, tx := range b.Transactions {
 		bc.txStore[tx.Hash(TxHasher{})] = tx
 	}
-	bc.lock.Unlock()
 
 	bc.logger.Log(
 		"msg", "new block",

@@ -118,12 +118,12 @@ func (b *Block) Verify() error {
 }
 
 // Decode decodes the block using the provided decoder.
-func (b *Block) Decode(dec Decoder[*Block]) error {
+func (b *Block) Decode(dec *gob.Decoder) error {
 	return dec.Decode(b)
 }
 
 // Encode encodes the block using the provided encoder.
-func (b *Block) Encode(enc Encoder[*Block]) error {
+func (b *Block) Encode(enc *gob.Encoder) error {
 	return enc.Encode(b)
 }
 
