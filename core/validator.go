@@ -51,7 +51,8 @@ func (v *BlockValidator) ValidateBlock(b *Block) error {
 	}
 
 	// Verify the previous block hash matches the current block's PrevBlockHash.
-	if hash := BlockHasher{}.Hash(prevHeader); hash != b.PrevBlockHash {
+	hash := BlockHasher{}.Hash(prevHeader)
+	if hash != b.PrevBlockHash {
 		return fmt.Errorf("the hash of the previous block (%s) is invalid", b.PrevBlockHash)
 	}
 
