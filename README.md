@@ -4,4 +4,5 @@ BluFi Network is a blockchain infrastructure that is specifically built ideally 
 
 -Mr.BLU_ of Blu.Fi Tech, Inc 
 
-![Uploading blucrown.png…]()
+
+![Uploading blufilogo.png…]()
