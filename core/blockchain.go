@@ -233,5 +233,5 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 		"transactions", len(b.Transactions),
 	)
 
-	return bc.store.Put(bHash(BlockHasher{}).String(), blockBytes)
+	return bc.store.Put(b.Hash(BlockHasher{}).String())
 }
