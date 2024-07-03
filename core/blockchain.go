@@ -10,29 +10,24 @@ import (
 )
 
 type Blockchain struct {
-	logger         log.Logger
-	store          Store
-	lock           sync.RWMutex
-	headers        []*Header
-	blocks         []*Block
-	txStore        map[types.Hash]*Transaction
-	blockStore     map[types.Hash]*Block
-	accountState   *AccountState
-	stateLock      sync.RWMutex
+	logger          log.Logger
+	store           Store
+	lock            sync.RWMutex
+	headers         []*Header
+	blocks          []*Block
+	txStore         map[types.Hash]*Transaction
+	blockStore      map[types.Hash]*Block
+	accountState    *AccountState
+	stateLock       sync.RWMutex
 	collectionState map[types.Hash]*CollectionTx
 	mintState       map[types.Hash]*MintTx
 	validator       Validator
-	contractState  *State
+	contractState   *State
 }
 
 // NewBlockchain creates a new Blockchain instance.
-func NewBlockchain(store Store) *Blockchain {
-    return &Blockchain{store: store}
-}
-
+func NewBlockchain(store Store, l log.Logger, accountState *AccountState, genesis *Block) (*Blockchain, error) {
 	bc := &Blockchain{
-		contractState:   NewState(),
-		headers:         []*Header{},
 		store:           storage.NewMemorystore(),
 		logger:          l,
 		accountState:    accountState,
@@ -40,28 +35,34 @@ func NewBlockchain(store Store) *Blockchain {
 		mintState:       make(map[types.Hash]*MintTx),
 		blockStore:      make(map[types.Hash]*Block),
 		txStore:         make(map[types.Hash]*Transaction),
+		contractState:   NewState(),
+		headers:         []*Header{},
+		blocks:          []*Block{},
 	}
 	bc.validator = NewBlockValidator(bc)
-	err := bc.addBlockWithoutValidation(genesis)
+
+	if err := bc.addBlockWithoutValidation(genesis); err != nil {
+		return nil, err
+	}
 
 	return bc, nil
 }
 
-// SetValidator sets the block validator
+// SetValidator sets the block validator.
 func (bc *Blockchain) SetValidator(v Validator) {
 	bc.validator = v
 }
 
-// AddBlock adds a block to the blockchain after validation
+// AddBlock adds a block to the blockchain after validation.
 func (bc *Blockchain) AddBlock(b *Block) error {
 	if err := bc.validator.ValidateBlock(b); err != nil {
-		return nil
+		return err
 	}
 
 	return bc.addBlockWithoutValidation(b)
 }
 
-// handleNativeTransfer processes native token transfers
+// handleNativeTransfer processes native token transfers.
 func (bc *Blockchain) handleNativeTransfer(tx *Transaction) error {
 	bc.logger.Log(
 		"msg", "handle native token transfer",
@@ -82,7 +83,7 @@ func (bc *Blockchain) handleNativeTransfer(tx *Transaction) error {
 	return bc.accountState.Transfer(fromAddr, toAddr, tx.Value)
 }
 
-// handleNativeNFT processes native NFT transactions
+// handleNativeNFT processes native NFT transactions.
 func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 	hash := tx.Hash(TxHasher{})
 
@@ -103,7 +104,7 @@ func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 	return nil
 }
 
-// GetBlockByHash retrieves a block by its hash
+// GetBlockByHash retrieves a block by its hash.
 func (bc *Blockchain) GetBlockByHash(hash types.Hash) (*Block, error) {
 	bc.lock.RLock()
 	defer bc.lock.RUnlock()
@@ -116,7 +117,7 @@ func (bc *Blockchain) GetBlockByHash(hash types.Hash) (*Block, error) {
 	return block, nil
 }
 
-// GetBlock retrieves a block by its height
+// GetBlock retrieves a block by its height.
 func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
 	if height > bc.Height() {
 		return nil, nil
@@ -128,7 +129,7 @@ func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
 	return bc.blocks[height], nil
 }
 
-// GetHeader retrieves a block header by its height
+// GetHeader retrieves a block header by its height.
 func (bc *Blockchain) GetHeader(height uint32) (*Header, error) {
 	if height > bc.Height() {
 		return nil, fmt.Errorf("given height (%d) too high", height)
@@ -140,7 +141,7 @@ func (bc *Blockchain) GetHeader(height uint32) (*Header, error) {
 	return bc.headers[height], nil
 }
 
-// GetTxByHash retrieves a transaction by its hash
+// GetTxByHash retrieves a transaction by its hash.
 func (bc *Blockchain) GetTxByHash(hash types.Hash) (*Transaction, error) {
 	bc.lock.RLock()
 	defer bc.lock.RUnlock()
@@ -153,13 +154,14 @@ func (bc *Blockchain) GetTxByHash(hash types.Hash) (*Transaction, error) {
 	return tx, nil
 }
 
-// HasBlock checks if a block exists at a given height
+// HasBlock checks if a block exists at a given height.
 func (bc *Blockchain) HasBlock(height uint32) bool {
-	return height <= bc.Height()
-	return false
+	bc.lock.RLock()
+	defer bc.lock.RUnlock()
+	return height <= uint32(len(bc.headers)-1)
 }
 
-// Height returns the current height of the blockchain
+// Height returns the current height of the blockchain.
 func (bc *Blockchain) Height() uint32 {
 	bc.lock.RLock()
 	defer bc.lock.RUnlock()
@@ -167,7 +169,7 @@ func (bc *Blockchain) Height() uint32 {
 	return uint32(len(bc.headers) - 1)
 }
 
-// handleTransaction processes a transaction
+// handleTransaction processes a transaction.
 func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 	if len(tx.Data) > 0 {
 		bc.logger.Log("msg", "executing code", "len", len(tx.Data), "hash", tx.Hash(TxHasher{}))
@@ -197,7 +199,7 @@ func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 	return nil
 }
 
-// addBlockWithoutValidation adds a block to the blockchain without validation
+// addBlockWithoutValidation adds a block to the blockchain without validation.
 func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 	bc.stateLock.Lock()
 	defer bc.stateLock.Unlock()
