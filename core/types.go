@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/hex"
@@ -35,12 +36,10 @@ type Signature struct {
 }
 
 // PublicKey represents an ECDSA public key with X and Y coordinates.
-type PublicKey struct {
-	X, Y *big.Int
-}
+type PublicKey ecdsa.PublicKey
 
 // Verify verifies an ECDSA signature given the hash and public key.
 func (pk PublicKey) Verify(hash Hash, signature Signature) bool {
 	curve := elliptic.P256()
-	return ecdsa.Verify(&ecdsa.PublicKey{Curve: curve, X: pk.X, Y: pk.Y}, hash[:], signature.R, signature.S)
+	return ecdsa.Verify((*ecdsa.PublicKey)(&pk), hash[:], signature.R, signature.S)
 }

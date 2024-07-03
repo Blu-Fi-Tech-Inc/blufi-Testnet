@@ -31,7 +31,7 @@ type MintTx struct {
 }
 
 type Transaction struct {
-	TxInner   interface{} // Generic type for handling inner transactions
+	TxInner   interface{}       // Generic type for handling inner transactions
 	Data      []byte
 	To        crypto.PublicKey
 	Value     uint64
@@ -64,7 +64,7 @@ func (tx *Transaction) Sign(privKey *crypto.PrivateKey) error {
 		return err
 	}
 
-	tx.From = *privKey.PublicKey
+	tx.From = *privKey.PublicKey()
 	tx.Signature = sig
 
 	return nil
@@ -89,6 +89,8 @@ func (tx *Transaction) Verify() error {
 		if !crypto.VerifySignature(&innerTx.CollectionOwner, innerTx.Collection.ToSlice(), innerTx.Signature) {
 			return fmt.Errorf("invalid mint transaction signature")
 		}
+	default:
+		return fmt.Errorf("unsupported transaction type")
 	}
 
 	return nil

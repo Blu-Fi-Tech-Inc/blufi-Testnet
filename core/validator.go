@@ -3,8 +3,6 @@ package core
 import (
 	"errors"
 	"fmt"
-
-	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
 )
 
 // ErrBlockKnown is returned when a block is already known to the blockchain.
