@@ -1,6 +1,6 @@
 module github.com/blu-fi-tech-inc/boriqua_project
 
-go 1.17
+go 1.22.4 // Adjusted to a valid Go version
 
 require (
 	github.com/davecgh/go-spew v1.1.1
