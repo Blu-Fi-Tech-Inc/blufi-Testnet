@@ -30,6 +30,12 @@ type Blockchain struct {
 
 // NewBlockchain creates a new Blockchain instance.
 func NewBlockchain(store Store, l log.Logger, accountState *AccountState, genesis *Block) (*Blockchain, error) {
+
+	accountState := NewAccountState()
+
+	coinbase := crypto.PublicKey{}
+	accountState.CreateAccount(coinbase.Address())
+
 	bc := &Blockchain{
 		store:           store,
 		logger:          l,
