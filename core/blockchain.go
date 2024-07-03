@@ -230,6 +230,7 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 	for _, tx := range b.Transactions {
 		bc.txStore[tx.Hash(TxHasher{})] = tx
 	}
+	bc.lock.Unlock()
 
 	bc.logger.Log(
 		"msg", "new block",
