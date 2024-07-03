@@ -76,15 +76,16 @@ func (b *Block) AddTransaction(tx *Transaction) {
 	b.DataHash = hash
 }
 
-// Sign signs the block's header using the provided private key.
-func (b *Block) Sign(privKey crypto.PrivateKey) error {
-	sig, err := privKey.Sign(b.Header.Bytes())
+// Update the Sign method in Block struct
+func (b *Block) Sign(privKey *crypto.PrivateKey) error {
+	hash := b.Hash(BlockHasher{})
+	sig, err := privKey.Sign(hash[:]) // Corrected to use hash as byte slice
 	if err != nil {
 		return err
 	}
 
-	b.Validator = privKey.PublicKey()
-	b.Signature = &sig
+	b.Validator = *privKey.PublicKey() // Corrected to call PublicKey method
+	b.Signature = &sig // Corrected to assign signature as pointer to Signature
 
 	return nil
 }

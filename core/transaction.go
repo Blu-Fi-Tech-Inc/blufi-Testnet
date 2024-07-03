@@ -59,12 +59,12 @@ func (tx *Transaction) Hash(hasher Hasher) types.Hash {
 
 func (tx *Transaction) Sign(privKey *crypto.PrivateKey) error {
 	hash := tx.Hash(TxHasher{})
-	sig, err := privKey.Sign(hash.ToSlice())
+	sig, err := privKey.Sign(hash[:]) // Corrected to use hash as byte slice
 	if err != nil {
 		return err
 	}
 
-	tx.From = *privKey.PublicKey()
+	tx.From = privKey.PublicKey() // Corrected to call PublicKey method
 	tx.Signature = sig
 
 	return nil

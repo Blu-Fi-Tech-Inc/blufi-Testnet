@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/blu-fi-tech-inc/boriqua_project/storage"
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 	"github.com/go-kit/log"
 )
 
 type Blockchain struct {
 	logger         log.Logger
-	store          Storage
+	store          storage.Store
 	lock           sync.RWMutex
 	headers        []*Header
 	blocks         []*Block
@@ -33,7 +34,7 @@ func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
 	bc := &Blockchain{
 		contractState:   NewState(),
 		headers:         []*Header{},
-		store:           NewMemorystore(),
+		store:           storage.NewMemorystore(),
 		logger:          l,
 		accountState:    accountState,
 		collectionState: make(map[types.Hash]*CollectionTx),
@@ -44,7 +45,7 @@ func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
 	bc.validator = NewBlockValidator(bc)
 	err := bc.addBlockWithoutValidation(genesis)
 
-	return bc, err
+	return bc, nil
 }
 
 // SetValidator sets the block validator

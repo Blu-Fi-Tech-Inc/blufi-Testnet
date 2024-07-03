@@ -2,7 +2,6 @@ package core
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/hex"
 	"math/big"
@@ -40,6 +39,5 @@ type PublicKey ecdsa.PublicKey
 
 // Verify verifies an ECDSA signature given the hash and public key.
 func (pk PublicKey) Verify(hash Hash, signature Signature) bool {
-	curve := elliptic.P256()
 	return ecdsa.Verify((*ecdsa.PublicKey)(&pk), hash[:], signature.R, signature.S)
 }
