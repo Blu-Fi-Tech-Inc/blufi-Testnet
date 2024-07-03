@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/blu-fi-tech-inc/blufi-network/cryto"
+	"github.com/blu-fi-tech-inc/blufi-network/crypto"
 	"github.com/blu-fi-tech-inc/blufi-network/types"
 	"github.com/go-kit/log"
 )
