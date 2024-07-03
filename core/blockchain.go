@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/blu-fi-tech-inc/blufi-network/storage"
+	"github.com/blu-fi-tech-inc/blufi-network/cryto"
 	"github.com/blu-fi-tech-inc/blufi-network/types"
 	"github.com/go-kit/log"
 )
@@ -17,18 +17,27 @@ type Blockchain struct {
 	blocks          []*Block
 	txStore         map[types.Hash]*Transaction
 	blockStore      map[types.Hash]*Block
+
 	accountState    *AccountState
+
 	stateLock       sync.RWMutex
 	collectionState map[types.Hash]*CollectionTx
 	mintState       map[types.Hash]*MintTx
 	validator       Validator
+
 	contractState   *State
 }
 
 // NewBlockchain creates a new Blockchain instance.
-func NewBlockchain(store Store, l log.Logger, accountState *AccountState, genesis *Block) (*Blockchain, error) {
+func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
+	\
+	accountState := NewAccountState()
+
+	coinbase := crypto.PublicKey{}
+	accountState.CreateAccount(coinbase.Address())
+
 	bc := &Blockchain{
-		store:           storage.NewMemorystore(),
+		store:           NewMemorystore(),
 		logger:          l,
 		accountState:    accountState,
 		collectionState: make(map[types.Hash]*CollectionTx),
@@ -37,15 +46,11 @@ func NewBlockchain(store Store, l log.Logger, accountState *AccountState, genesi
 		txStore:         make(map[types.Hash]*Transaction),
 		contractState:   NewState(),
 		headers:         []*Header{},
-		blocks:          []*Block{},
 	}
 	bc.validator = NewBlockValidator(bc)
+	err := bc.addBlockWithoutValidation(genesis)
 
-	if err := bc.addBlockWithoutValidation(genesis); err != nil {
-		return nil, err
-	}
-
-	return bc, nil
+	return bc, err
 }
 
 // SetValidator sets the block validator.
@@ -88,14 +93,16 @@ func (bc *Blockchain) handleNativeNFT(tx *Transaction) error {
 	hash := tx.Hash(TxHasher{})
 
 	switch t := tx.TxInner.(type) {
-	case *CollectionTx:
-		bc.collectionState[hash] = t
+	case CollectionTx:
+		bc.collectionState[hash] = &t
 		bc.logger.Log("msg", "created new NFT collection", "hash", hash)
-	case *MintTx:
-		if _, ok := bc.collectionState[t.Collection]; !ok {
+	case MintTx:
+		_, ok := bc.collectionState[t.Collection];
+		if !ok {
 			return fmt.Errorf("collection (%s) does not exist on the blockchain", t.Collection)
 		}
-		bc.mintState[hash] = t
+		bc.mintState[hash] = &t
+
 		bc.logger.Log("msg", "created new NFT mint", "NFT", t.NFT, "collection", t.Collection)
 	default:
 		return fmt.Errorf("unsupported tx type %T", t)
@@ -120,7 +127,7 @@ func (bc *Blockchain) GetBlockByHash(hash types.Hash) (*Block, error) {
 // GetBlock retrieves a block by its height.
 func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
 	if height > bc.Height() {
-		return nil, nil
+		return nil, fmt.Errorf("given height (%d) too high", height)
 	}
 
 	bc.lock.RLock()
@@ -173,6 +180,7 @@ func (bc *Blockchain) Height() uint32 {
 func (bc *Blockchain) handleTransaction(tx *Transaction) error {
 	if len(tx.Data) > 0 {
 		bc.logger.Log("msg", "executing code", "len", len(tx.Data), "hash", tx.Hash(TxHasher{}))
+
 		vm := NewVM(tx.Data, bc.contractState)
 		if err := vm.Run(); err != nil {
 			return err
@@ -211,9 +219,9 @@ func (bc *Blockchain) addBlockWithoutValidation(b *Block) error {
 		}
 	}
 
-	bc.lock.Lock()
 	defer bc.lock.Unlock()
 
+	bc.lock.Lock()
 	bc.headers = append(bc.headers, b.Header)
 	bc.blocks = append(bc.blocks, b)
 	bc.blockStore[b.Hash(BlockHasher{})] = b
