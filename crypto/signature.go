@@ -6,6 +6,14 @@ import (
     "math/big"
 )
 
+type PrivateKey struct {
+    *ecdsa.PrivateKey
+}
+
+type PublicKey struct {
+    *ecdsa.PublicKey
+}
+
 func (priv *PrivateKey) Sign(data []byte) ([]byte, error) {
     r, s, err := ecdsa.Sign(rand.Reader, priv.PrivateKey, data)
     if err != nil {

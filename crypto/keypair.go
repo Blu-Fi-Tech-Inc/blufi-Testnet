@@ -1,13 +1,13 @@
 package crypto
 
 import (
-	"crypto/ecdsa"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
-	"math/big"
+    "crypto/ecdsa"
+    "crypto/elliptic"
+    "crypto/rand"
+    "crypto/sha256"
+    "encoding/hex"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
+    "github.com/blu-fi-tech-inc/boriqua_project/types"
 )
 
 type PrivateKey struct {
@@ -44,12 +44,7 @@ func (priv *PrivateKey) Sign(data []byte) ([]byte, error) {
 }
 
 func (pub *PublicKey) Verify(data, signature []byte) bool {
-	r := big.Int{}
-	s := big.Int{}
-	sigLen := len(signature)
-
-	r.SetBytes(signature[:(sigLen / 2)])
-	s.SetBytes(signature[(sigLen / 2):])
-
-	return ecdsa.Verify(pub.PublicKey, data, &r, &s)
+    r := new(big.Int).SetBytes(signature[:len(signature)/2])
+    s := new(big.Int).SetBytes(signature[len(signature)/2:])
+    return ecdsa.Verify(pub.PublicKey, data, r, s)
 }
