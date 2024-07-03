@@ -2,8 +2,11 @@ package crypto
 
 import (
     "crypto/ecdsa"
+    "crypto/rand"
     "crypto/x509"
+    "crypto/elliptic"
     "encoding/hex"
+    "math/big"
 
     "github.com/blu-fi-tech-inc/boriqua_project/types"
 )
@@ -17,7 +20,7 @@ type PublicKey struct {
 }
 
 func GenerateKeyPair() (*PrivateKey, *PublicKey, error) {
-    privKey, err := ecdsa.GenerateKey(ecdsa.P256(), rand.Reader)
+    privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
     if err != nil {
         return nil, nil, err
     }
