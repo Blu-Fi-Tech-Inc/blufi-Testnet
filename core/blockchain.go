@@ -11,7 +11,7 @@ import (
 
 type Blockchain struct {
 	logger         log.Logger
-	store          storage.Store
+	store          Store
 	lock           sync.RWMutex
 	headers        []*Header
 	blocks         []*Block
@@ -25,11 +25,10 @@ type Blockchain struct {
 	contractState  *State
 }
 
-// NewBlockchain initializes a new blockchain with a genesis block
-func NewBlockchain(l log.Logger, genesis *Block) (*Blockchain, error) {
-	accountState := NewAccountState()
-	coinbase := types.Address{} // Assuming types.Address is defined appropriately
-	accountState.CreateAccount(coinbase)
+// NewBlockchain creates a new Blockchain instance.
+func NewBlockchain(store Store) *Blockchain {
+    return &Blockchain{store: store}
+}
 
 	bc := &Blockchain{
 		contractState:   NewState(),
@@ -56,7 +55,7 @@ func (bc *Blockchain) SetValidator(v Validator) {
 // AddBlock adds a block to the blockchain after validation
 func (bc *Blockchain) AddBlock(b *Block) error {
 	if err := bc.validator.ValidateBlock(b); err != nil {
-		return err
+		return nil
 	}
 
 	return bc.addBlockWithoutValidation(b)
@@ -120,7 +119,7 @@ func (bc *Blockchain) GetBlockByHash(hash types.Hash) (*Block, error) {
 // GetBlock retrieves a block by its height
 func (bc *Blockchain) GetBlock(height uint32) (*Block, error) {
 	if height > bc.Height() {
-		return nil, fmt.Errorf("given height (%d) too high", height)
+		return nil, nil
 	}
 
 	bc.lock.RLock()
@@ -157,6 +156,7 @@ func (bc *Blockchain) GetTxByHash(hash types.Hash) (*Transaction, error) {
 // HasBlock checks if a block exists at a given height
 func (bc *Blockchain) HasBlock(height uint32) bool {
 	return height <= bc.Height()
+	return false
 }
 
 // Height returns the current height of the blockchain

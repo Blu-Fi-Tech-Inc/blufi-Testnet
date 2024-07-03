@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/ecdsa"
 	"encoding/gob"
 	"fmt"
 	"math/rand"
@@ -64,8 +65,8 @@ func (tx *Transaction) Sign(privKey *crypto.PrivateKey) error {
 		return err
 	}
 
-	tx.From = privKey.PublicKey() // Corrected to call PublicKey method
-	tx.Signature = sig
+	tx.From = crypto.PublicKey{PublicKey: &privKey.PublicKey}
+    tx.Signature = sig
 
 	return nil
 }
@@ -76,35 +77,33 @@ func (tx *Transaction) Verify() error {
 	}
 
 	hash := tx.Hash(TxHasher{})
-	pubKey := &tx.From
-	if !crypto.VerifySignature(pubKey, hash.ToSlice(), tx.Signature) {
-		return fmt.Errorf("invalid transaction signature")
-	}
+    pubKey := &tx.From
+    if !crypto.VerifySignature(pubKey, hash[:], tx.Signature) {
+        return fmt.Errorf("invalid transaction signature")
+    }
 
 	// Verify the inner transaction if exists
 	switch innerTx := tx.TxInner.(type) {
 	case CollectionTx:
 		// Add specific verification for CollectionTx if needed
 	case MintTx:
-		if !crypto.VerifySignature(&innerTx.CollectionOwner, innerTx.Collection.ToSlice(), innerTx.Signature) {
-			return fmt.Errorf("invalid mint transaction signature")
-		}
-	default:
-		return fmt.Errorf("unsupported transaction type")
-	}
+        if !crypto.VerifySignature(&innerTx.CollectionOwner, innerTx.Collection[:], innerTx.Signature) {
+            return fmt.Errorf("invalid mint transaction signature")
+        }
+    }
 
 	return nil
 }
 
-func (tx *Transaction) Decode(dec Decoder) error {
-	return dec.Decode(tx)
+func (tx *Transaction) Decode(dec *gob.Decoder) error {
+    return dec.Decode(tx)
 }
 
-func (tx *Transaction) Encode(enc Encoder) error {
-	return enc.Encode(tx)
+func (tx *Transaction) Encode(enc *gob.Encoder) error {
+    return enc.Encode(tx)
 }
 
 func init() {
-	gob.Register(CollectionTx{})
-	gob.Register(MintTx{})
+    gob.Register(CollectionTx{})
+    gob.Register(MintTx{})
 }

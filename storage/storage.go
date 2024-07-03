@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	// ErrZeroKey is returned if an attempt was made to inset a 0-length key.
-	ErrZeroKey = errors.New("0-length key")
+	ErrZeroKey = errors.New("-length key")
 
 	// ErrNotFound is returned if an unknown key is attempted to be retrieved.
 	ErrNotFound = errors.New("not found")

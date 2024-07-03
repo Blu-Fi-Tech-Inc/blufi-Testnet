@@ -2,41 +2,44 @@ package core
 
 import (
     "fmt"
-    "sync"
 )
 
-type Storage interface {
-    Put(*Block) error
-    Get(hash []byte) (*Block, error)
+// Store represents a generic key-value store.
+type Store interface {
+    Get(key string) ([]byte, error)
+    Put(key string, value []byte) error
+    Delete(key string) error
 }
 
-type MemoryStore struct {
-    mu    sync.RWMutex
-    store map[string]*Block
+// MemStore is an in-memory key-value store implementation.
+type MemStore struct {
+    data map[string][]byte
 }
 
-func NewMemoryStore() *MemoryStore {
-    return &MemoryStore{
-        store: make(map[string]*Block),
+// NewMemStore creates a new MemStore.
+func NewMemStore() *MemStore {
+    return &MemStore{
+        data: make(map[string][]byte),
     }
 }
 
-func (s *MemoryStore) Put(b *Block) error {
-    s.mu.Lock()
-    defer s.mu.Unlock()
+// Get retrieves a value by key.
+func (m *MemStore) Get(key string) ([]byte, error) {
+    value, exists := m.data[key]
+    if !exists {
+        return nil, fmt.Errorf("key not found: %s", key)
+    }
+    return value, nil
+}
 
-    hash := b.Hash(BlockHasher{}).String()
-    s.store[hash] = b
+// Put stores a value by key.
+func (m *MemStore) Put(key string, value []byte) error {
+    m.data[key] = value
     return nil
 }
 
-func (s *MemoryStore) Get(hash []byte) (*Block, error) {
-    s.mu.RLock()
-    defer s.mu.RUnlock()
-
-    b, ok := s.store[string(hash)]
-    if !ok {
-        return nil, fmt.Errorf("block not found")
-    }
-    return b, nil
+// Delete removes a value by key.
+func (m *MemStore) Delete(key string) error {
+    delete(m.data, key)
+    return nil
 }
