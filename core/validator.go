@@ -4,8 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/blu-fi-tech-inc/boriqua_project/types"
-	"crypto/sha256"
+	"github.com/blu-fi-tech-inc/boriqua_project/crypto"
 )
 
 // ErrBlockKnown is returned when a block is already known to the blockchain.
@@ -28,12 +27,6 @@ func NewBlockValidator(bc *Blockchain) *BlockValidator {
 	}
 }
 
-// BlockHasher function returns a hash of a block
-func BlockHasher(block *Block) [32]byte {
-	blockData := block.Marshal() // Assuming Block has a Marshal method
-	return sha256.Sum256(blockData)
-}
-
 // ValidateBlock validates a block to ensure it can be added to the blockchain.
 func (v *BlockValidator) ValidateBlock(b *Block) error {
 	// Check if the block is already known to the blockchain.
@@ -45,7 +38,7 @@ func (v *BlockValidator) ValidateBlock(b *Block) error {
 	if b.Height != v.bc.Height()+1 {
 		return fmt.Errorf(
 			"block (%s) with height (%d) is too high => current height (%d)",
-			b.Hash(BlockHasher),
+			b.Hash(BlockHasher{}),
 			b.Height,
 			v.bc.Height(),
 		)
@@ -58,7 +51,7 @@ func (v *BlockValidator) ValidateBlock(b *Block) error {
 	}
 
 	// Verify the previous block hash matches the current block's PrevBlockHash.
-	if hash := BlockHasher(prevHeader); hash != b.PrevBlockHash {
+	if hash := BlockHasher{}.Hash(prevHeader); hash != b.PrevBlockHash {
 		return fmt.Errorf("the hash of the previous block (%s) is invalid", b.PrevBlockHash)
 	}
 

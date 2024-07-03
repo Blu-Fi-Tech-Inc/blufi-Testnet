@@ -11,14 +11,16 @@ import (
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
 
+// Header represents the header of a block.
 type Header struct {
-	Version       uint32
-	DataHash      types.Hash
-	PrevBlockHash types.Hash
-	Height        uint32
-	Timestamp     int64
+	Version       uint32       // Version of the block
+	DataHash      types.Hash   // Hash of the block's data
+	PrevBlockHash types.Hash   // Hash of the previous block's header
+	Height        uint32       // Height of the block in the blockchain
+	Timestamp     int64        // Timestamp when the block was created
 }
 
+// Bytes serializes the header into a byte slice using gob encoding.
 func (h *Header) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	enc := gob.NewEncoder(buf)
@@ -28,17 +30,16 @@ func (h *Header) Bytes() []byte {
 	return buf.Bytes()
 }
 
+// Block represents a block in the blockchain.
 type Block struct {
-	*Header
-
-	Transactions []*Transaction
-	Validator    crypto.PublicKey
-	Signature    *crypto.Signature
-
-	// Cached version of the header hash
-	hash types.Hash
+	*Header             // Pointer to the block's header
+	Transactions []*Transaction // List of transactions in the block
+	Validator    crypto.PublicKey // Public key of the validator who created the block
+	Signature    *crypto.Signature // Signature of the block
+	hash types.Hash       // Cached hash of the block's header
 }
 
+// NewBlock creates a new block with the given header and transactions.
 func NewBlock(h *Header, txx []*Transaction) (*Block, error) {
 	return &Block{
 		Header:       h,
@@ -46,6 +47,7 @@ func NewBlock(h *Header, txx []*Transaction) (*Block, error) {
 	}, nil
 }
 
+// NewBlockFromPrevHeader creates a new block based on the previous block's header and given transactions.
 func NewBlockFromPrevHeader(prevHeader *Header, txx []*Transaction) (*Block, error) {
 	dataHash, err := CalculateDataHash(txx)
 	if err != nil {
@@ -63,6 +65,7 @@ func NewBlockFromPrevHeader(prevHeader *Header, txx []*Transaction) (*Block, err
 	return NewBlock(header, txx)
 }
 
+// AddTransaction adds a transaction to the block and recalculates the block's data hash.
 func (b *Block) AddTransaction(tx *Transaction) {
 	b.Transactions = append(b.Transactions, tx)
 	hash, err := CalculateDataHash(b.Transactions)
@@ -73,6 +76,7 @@ func (b *Block) AddTransaction(tx *Transaction) {
 	b.DataHash = hash
 }
 
+// Sign signs the block's header using the provided private key.
 func (b *Block) Sign(privKey crypto.PrivateKey) error {
 	sig, err := privKey.Sign(b.Header.Bytes())
 	if err != nil {
@@ -85,6 +89,7 @@ func (b *Block) Sign(privKey crypto.PrivateKey) error {
 	return nil
 }
 
+// Verify verifies the integrity and validity of the block.
 func (b *Block) Verify() error {
 	if b.Signature == nil {
 		return fmt.Errorf("block has no signature")
@@ -112,14 +117,17 @@ func (b *Block) Verify() error {
 	return nil
 }
 
+// Decode decodes the block using the provided decoder.
 func (b *Block) Decode(dec Decoder[*Block]) error {
 	return dec.Decode(b)
 }
 
+// Encode encodes the block using the provided encoder.
 func (b *Block) Encode(enc Encoder[*Block]) error {
 	return enc.Encode(b)
 }
 
+// Hash computes and returns the hash of the block's header using the provided hasher.
 func (b *Block) Hash(hasher Hasher[*Header]) types.Hash {
 	if b.hash.IsZero() {
 		b.hash = hasher.Hash(b.Header)
@@ -128,6 +136,7 @@ func (b *Block) Hash(hasher Hasher[*Header]) types.Hash {
 	return b.hash
 }
 
+// CalculateDataHash computes the hash of the block's data (transactions).
 func CalculateDataHash(txx []*Transaction) (types.Hash, error) {
 	buf := &bytes.Buffer{}
 
@@ -137,5 +146,5 @@ func CalculateDataHash(txx []*Transaction) (types.Hash, error) {
 		}
 	}
 
-	return sha256.Sum256(buf.Bytes()), nil
+	return types.Hash(sha256.Sum256(buf.Bytes())), nil
 }

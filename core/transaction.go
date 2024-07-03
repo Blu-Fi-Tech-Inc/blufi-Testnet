@@ -27,7 +27,7 @@ type MintTx struct {
 	Collection      types.Hash
 	MetaData        []byte
 	CollectionOwner crypto.PublicKey
-	Signature       *crypto.Signature
+	Signature       []byte
 }
 
 type Transaction struct {
@@ -36,7 +36,7 @@ type Transaction struct {
 	To        crypto.PublicKey
 	Value     uint64
 	From      crypto.PublicKey
-	Signature *crypto.Signature
+	Signature []byte
 	Nonce     int64
 
 	// Cached version of the tx data hash
@@ -50,21 +50,21 @@ func NewTransaction(data []byte) *Transaction {
 	}
 }
 
-func (tx *Transaction) Hash(hasher Hasher[*Transaction]) types.Hash {
+func (tx *Transaction) Hash(hasher Hasher) types.Hash {
 	if tx.hash.IsZero() {
 		tx.hash = hasher.Hash(tx)
 	}
 	return tx.hash
 }
 
-func (tx *Transaction) Sign(privKey crypto.PrivateKey) error {
+func (tx *Transaction) Sign(privKey *crypto.PrivateKey) error {
 	hash := tx.Hash(TxHasher{})
 	sig, err := privKey.Sign(hash.ToSlice())
 	if err != nil {
 		return err
 	}
 
-	tx.From = privKey.PublicKey()
+	tx.From = *privKey.PublicKey
 	tx.Signature = sig
 
 	return nil
@@ -76,7 +76,8 @@ func (tx *Transaction) Verify() error {
 	}
 
 	hash := tx.Hash(TxHasher{})
-	if !tx.Signature.Verify(tx.From, hash.ToSlice()) {
+	pubKey := &tx.From
+	if !crypto.VerifySignature(pubKey, hash.ToSlice(), tx.Signature) {
 		return fmt.Errorf("invalid transaction signature")
 	}
 
@@ -85,7 +86,7 @@ func (tx *Transaction) Verify() error {
 	case CollectionTx:
 		// Add specific verification for CollectionTx if needed
 	case MintTx:
-		if !innerTx.Signature.Verify(innerTx.CollectionOwner, innerTx.Collection.ToSlice()) {
+		if !crypto.VerifySignature(&innerTx.CollectionOwner, innerTx.Collection.ToSlice(), innerTx.Signature) {
 			return fmt.Errorf("invalid mint transaction signature")
 		}
 	}
@@ -93,11 +94,11 @@ func (tx *Transaction) Verify() error {
 	return nil
 }
 
-func (tx *Transaction) Decode(dec Decoder[*Transaction]) error {
+func (tx *Transaction) Decode(dec Decoder) error {
 	return dec.Decode(tx)
 }
 
-func (tx *Transaction) Encode(enc Encoder[*Transaction]) error {
+func (tx *Transaction) Encode(enc Encoder) error {
 	return enc.Encode(tx)
 }
 

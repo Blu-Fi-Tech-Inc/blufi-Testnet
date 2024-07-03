@@ -9,12 +9,15 @@ import (
 	"github.com/blu-fi-tech-inc/boriqua_project/types"
 )
 
+// Hasher is an interface that defines a method to hash various types of data.
 type Hasher interface {
 	Hash(interface{}) types.Hash
 }
 
+// BlockHasher implements the Hasher interface for blocks.
 type BlockHasher struct{}
 
+// Hash computes the hash of a block header.
 func (BlockHasher) Hash(b interface{}) types.Hash {
 	header, ok := b.(*Header)
 	if !ok {
@@ -25,8 +28,10 @@ func (BlockHasher) Hash(b interface{}) types.Hash {
 	return types.Hash(h)
 }
 
+// TxHasher implements the Hasher interface for transactions.
 type TxHasher struct{}
 
+// Hash computes the hash of a transaction.
 func (TxHasher) Hash(tx interface{}) types.Hash {
 	t, ok := tx.(*Transaction)
 	if !ok {
